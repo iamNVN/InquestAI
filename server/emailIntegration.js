@@ -108,8 +108,8 @@ export async function startEmailListener() {
 
 async function sendReply(invId, verdictData, senderEmail) {
     try {
-        const dashboardLink = `https://inquest.iamnvn.in/court/${invId}`;
-        const reportLink = `https://inquest.iamnvn.in/report/${invId}`;
+        const dashboardLink = `http://18.60.241.151/court/${invId}`;
+        const reportLink = `http://18.60.241.151/report/${invId}`;
         const recipient = senderEmail; 
         
         const htmlBody = `
