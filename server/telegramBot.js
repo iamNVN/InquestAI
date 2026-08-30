@@ -15,28 +15,32 @@ const smtpTransporter = nodemailer.createTransport({
     tls: { rejectUnauthorized: false }
 });
 
-async function sendDemoEmail() {
+async function sendDemoEmail(targetEmail = 'fakecreditcard88@gmail.com') {
     const htmlBody = `
-        <p>Dear Customer,</p>
-        <p>We noticed unusual activity on your account. Please click the link below to verify your identity:</p>
-        <p><a href="http://papyal-login.com/verify">http://papyal-login.com/verify</a></p>
-        <p>Failure to do so will result in account suspension.</p>
-        <p>Thanks,<br>The PayPal Security Team</p>
+        <div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+            <h2>Inquest AI Investigation Complete</h2>
+            <p>A new email submitted to the courtroom has been fully analyzed.</p>
+            <ul>
+                <li><strong>Verdict:</strong> PHISHING</li>
+                <li><strong>Confidence:</strong> 100%</li>
+                <li><strong>Risk Level:</strong> HIGH</li>
+            </ul>
+            <p><strong>Summary:</strong> This email is a classic credential harvesting phishing attack designed to impersonate PayPal. It uses a deceptive typosquatted domain and urgent threat language to trick the recipient into clicking a malicious verification link.</p>
+            <p style="margin-top: 30px;">
+              <a href="http://18.60.241.151/court/4869af04-f81e-48ea-a6ce-853a8c1fed61" style="padding: 10px 15px; background: #d4b872; color: #111; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">View Live Hearing Transcript</a>
+              <a href="http://18.60.241.151/report/4869af04-f81e-48ea-a6ce-853a8c1fed61" style="padding: 10px 15px; background: transparent; border: 1px solid #d4b872; color: #d4b872; text-decoration: none; border-radius: 4px; display: inline-block;">Generate Official PDF Report</a>
+            </p>
+        </div>
     `;
 
-    // Send the email TO the system (courtroom@iamnvn.in) FROM a spoofed victim email
+    // Send the final Verdict email directly to the target email
     await smtpTransporter.sendMail({
-        from: '"Adi Shankar" <fakecreditcard88@gmail.com>', 
-        to: process.env.EMAIL_USER, 
-        subject: 'Fwd: Urgent: Verify Your Account',
-        html: `---------- Forwarded message ---------<br>
-From: PayPal Security &lt;security@papyal.com&gt;<br>
-Date: Tue, Sep 1, 2026 at 9:00 AM<br>
-Subject: Urgent: Verify Your Account<br>
-To: Adi Shankar &lt;fakecreditcard88@gmail.com&gt;<br><br>
-${htmlBody}`
+        from: '"Inquest AI Courtroom" <' + process.env.EMAIL_USER + '>', 
+        to: targetEmail, 
+        subject: '[Analyzed] Verdict: PHISHING - Case #4869af',
+        html: htmlBody
     });
-    console.log("Demo email successfully injected into the system!");
+    console.log(`Demo verdict email successfully sent to ${targetEmail}!`);
 }
 
 let lastUpdateId = 0;
@@ -51,7 +55,10 @@ async function pollTelegram() {
                 lastUpdateId = update.update_id;
                 const message = update.message;
                 
-                if (message && message.text === '/demo') {
+                if (message && message.text && message.text.startsWith('/demo')) {
+                    const parts = message.text.split(' ');
+                    const targetEmail = (parts.length > 1 && parts[1].includes('@')) ? parts[1] : 'fakecreditcard88@gmail.com';
+                    
                     console.log(`[Telegram] Received /demo command from ${message.from.first_name}`);
                     
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -59,18 +66,18 @@ async function pollTelegram() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: message.chat.id,
-                            text: '🚀 Injecting live phishing email into InquestAI now...'
+                            text: `🚀 Sending instant Verdict report to ${targetEmail}...`
                         })
                     });
                     
                     try {
-                        await sendDemoEmail();
+                        await sendDemoEmail(targetEmail);
                         await fetch(`${TELEGRAM_API}/sendMessage`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 chat_id: message.chat.id,
-                                text: `✅ Demo email sent to ${process.env.EMAIL_USER}! The AI courtroom is now in session. Check your dashboard.`
+                                text: `✅ Demo Verdict email successfully sent to ${targetEmail}! Check the inbox.`
                             })
                         });
                     } catch (err) {
