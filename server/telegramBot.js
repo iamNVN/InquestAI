@@ -27,16 +27,16 @@ async function sendDemoEmail(targetEmail = 'fakecreditcard88@gmail.com') {
             </ul>
             <p><strong>Summary:</strong> This email is a classic credential harvesting phishing attack designed to impersonate PayPal. It uses a deceptive typosquatted domain and urgent threat language to trick the recipient into clicking a malicious verification link.</p>
             <p style="margin-top: 30px;">
-              <a href="http://18.60.241.151/court/4869af04-f81e-48ea-a6ce-853a8c1fed61" style="padding: 10px 15px; background: #d4b872; color: #111; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">View Live Hearing Transcript</a>
-              <a href="http://18.60.241.151/report/4869af04-f81e-48ea-a6ce-853a8c1fed61" style="padding: 10px 15px; background: transparent; border: 1px solid #d4b872; color: #d4b872; text-decoration: none; border-radius: 4px; display: inline-block;">Generate Official PDF Report</a>
+              <a href="http://18.60.241.151/court/dea2b5cf-a48f-4324-aa98-4056dbcb9c15" style="padding: 10px 15px; background: #d4b872; color: #111; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">View Live Hearing Transcript</a>
+              <a href="http://18.60.241.151/report/dea2b5cf-a48f-4324-aa98-4056dbcb9c15" style="padding: 10px 15px; background: transparent; border: 1px solid #d4b872; color: #d4b872; text-decoration: none; border-radius: 4px; display: inline-block;">Generate Official PDF Report</a>
             </p>
         </div>
     `;
 
     // Send the final Verdict email directly to the target email
     await smtpTransporter.sendMail({
-        from: '"Inquest AI Courtroom" <' + process.env.EMAIL_USER + '>', 
-        to: targetEmail, 
+        from: '"Inquest AI Courtroom" <' + process.env.EMAIL_USER + '>',
+        to: targetEmail,
         subject: '[Analyzed] Verdict: PHISHING - Case #4869af',
         html: htmlBody
     });
@@ -49,18 +49,18 @@ async function pollTelegram() {
     try {
         const res = await fetch(`${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=30`);
         const data = await res.json();
-        
+
         if (data.ok && data.result.length > 0) {
             for (const update of data.result) {
                 lastUpdateId = update.update_id;
                 const message = update.message;
-                
+
                 if (message && message.text && message.text.startsWith('/demo')) {
                     const parts = message.text.split(' ');
                     const targetEmail = (parts.length > 1 && parts[1].includes('@')) ? parts[1] : 'fakecreditcard88@gmail.com';
-                    
+
                     console.log(`[Telegram] Received /demo command from ${message.from.first_name}`);
-                    
+
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +69,7 @@ async function pollTelegram() {
                             text: `🚀 Sending instant Verdict report to ${targetEmail}...`
                         })
                     });
-                    
+
                     try {
                         await sendDemoEmail(targetEmail);
                         await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -92,7 +92,7 @@ async function pollTelegram() {
             console.error("Polling error:", e);
         }
     }
-    
+
     // Poll continuously
     setTimeout(pollTelegram, 1000);
 }
