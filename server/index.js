@@ -4,14 +4,18 @@ import cors from 'cors';
 import { syncDb, Investigation, EvidenceEntry, GraphEdge, Verdict, HearingDialogue } from './db.js';
 import { startInvestigation, subscribe } from './orchestrator/investigate.js';
 import { startEmailListener } from './emailIntegration.js';
+import { startTelegramBot } from './telegramBot.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sync DB and start email listener
+// Sync DB and start listeners
 syncDb().then(() => {
-  startEmailListener();
+  if (!process.env.VERCEL) {
+    startEmailListener();
+    startTelegramBot();
+  }
 }).catch(console.error);
 
 // -------------------------------------

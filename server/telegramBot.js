@@ -70,7 +70,7 @@ async function pollTelegram() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 chat_id: message.chat.id,
-                                text: '✅ Email intercepted! The AI courtroom is now in session. Check your dashboard.'
+                                text: `✅ Demo email sent to ${process.env.EMAIL_USER}! The AI courtroom is now in session. Check your dashboard.`
                             })
                         });
                     } catch (err) {
@@ -90,6 +90,7 @@ async function pollTelegram() {
     setTimeout(pollTelegram, 1000);
 }
 
-console.log("🤖 InquestAI Demo Telegram Bot is running...");
-console.log("Send /demo to the bot on Telegram to trigger the email injection.");
-pollTelegram();
+export function startTelegramBot() {
+    console.log("🤖 InquestAI Demo Telegram Bot is running alongside backend...");
+    pollTelegram();
+}
