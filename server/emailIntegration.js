@@ -15,48 +15,65 @@ const smtpTransporter = nodemailer.createTransport({
     tls: { rejectUnauthorized: false }
 });
 
-// Track message IDs we've processed this session (backup dedup layer on top of DB unique constraint)
+// In-memory dedup guard (second layer on top of DB unique constraint)
 const processedMessageIds = new Set();
 
-async function processMessage(client, uid, parsed) {
-    const messageId = parsed.messageId || `uid-${uid}`;
-
-    // Layer 1: in-memory check (fastest)
-    if (processedMessageIds.has(messageId)) {
-        console.log(`[Email Listener] Skipping duplicate (memory): ${messageId}`);
-        return;
-    }
-    processedMessageIds.add(messageId);
-
-    const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
-    console.log(`[Email Listener] Processing: ${parsed.subject} from ${parsed.from?.text}`);
+async function processMessage(client, seqOrUid, isUid = false) {
+    const fetchRange = seqOrUid;
+    const fetchOptions = { source: true, uid: true };
 
     try {
-        // Layer 2: DB unique constraint on message_id prevents duplicates at database level
-        const inv = await Investigation.create({
-            message_id: messageId,
-            raw_email: rawEmail,
-            status: 'running'
-        });
+        const lock = await client.getMailboxLock('INBOX');
+        try {
+            for await (const msg of client.fetch(fetchRange, fetchOptions, isUid ? { uid: true } : {})) {
+                const parsed = await simpleParser(msg.source);
+                const messageId = parsed.messageId || `uid-${msg.uid}`;
 
-        const invId = inv.id;
-        console.log(`[Email Listener] Created case ${invId}`);
+                // Layer 1: memory check
+                if (processedMessageIds.has(messageId)) {
+                    console.log(`[Email Listener] Skip duplicate (memory): ${messageId}`);
+                    continue;
+                }
+                processedMessageIds.add(messageId);
 
-        const unsubscribe = subscribe(invId, async (event, payload) => {
-            if (event === 'verdict_ready') {
-                unsubscribe();
-                const senderEmail = parsed.from?.value?.[0]?.address || parsed.from?.text || 'unknown';
-                await sendReply(invId, payload.verdict, senderEmail);
+                const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
+                console.log(`[Email Listener] Processing: "${parsed.subject}" from ${parsed.from?.text}`);
+
+                try {
+                    // Layer 2: DB unique constraint on message_id
+                    const inv = await Investigation.create({
+                        message_id: messageId,
+                        raw_email: rawEmail,
+                        status: 'running'
+                    });
+
+                    console.log(`[Email Listener] Created case ${inv.id}`);
+
+                    const unsubscribe = subscribe(inv.id, async (event, payload) => {
+                        if (event === 'verdict_ready') {
+                            unsubscribe();
+                            const senderEmail = parsed.from?.value?.[0]?.address || parsed.from?.text || 'unknown';
+                            await sendReply(inv.id, payload.verdict, senderEmail);
+                        }
+                    });
+
+                    startInvestigation(inv.id, rawEmail).catch(console.error);
+                } catch (dbErr) {
+                    if (dbErr.name === 'SequelizeUniqueConstraintError') {
+                        console.log(`[Email Listener] Skip duplicate (DB): ${messageId}`);
+                    } else {
+                        console.error('[Email Listener] DB error:', dbErr.message);
+                    }
+                }
+
+                // Mark as seen
+                await client.messageFlagsAdd(msg.uid, ['\\Seen'], { uid: true });
             }
-        });
-
-        startInvestigation(invId, rawEmail).catch(console.error);
-    } catch (err) {
-        if (err.name === 'SequelizeUniqueConstraintError') {
-            console.log(`[Email Listener] Skipping duplicate (DB): ${messageId}`);
-        } else {
-            console.error('[Email Listener] Error creating investigation:', err);
+        } finally {
+            lock.release();
         }
+    } catch (err) {
+        console.error('[Email Listener] Error processing message:', err.message);
     }
 }
 
@@ -70,64 +87,68 @@ export async function startEmailListener() {
             pass: process.env.EMAIL_PASSWORD
         },
         tls: { rejectUnauthorized: false },
-        logger: false  // suppress verbose logging
+        logger: false
     });
 
     client.on('error', (err) => {
-        console.error('[Email Listener] Connection error:', err.message);
+        console.error('[Email Listener] Client error:', err.message);
     });
 
     try {
         await client.connect();
         console.log('[Email Listener] Connected to IMAP server.');
 
-        const lock = await client.getMailboxLock('INBOX');
-        try {
-            // Fetch any unseen emails that arrived while server was down (catch-up)
-            const unseenUids = await client.search({ unseen: true });
-            if (unseenUids.length > 0) {
-                console.log(`[Email Listener] Catch-up: ${unseenUids.length} unseen email(s) found.`);
-                for await (const message of client.fetch(unseenUids, { source: true, uid: true })) {
-                    const parsed = await simpleParser(message.source);
-                    await processMessage(client, message.uid, parsed);
-                    // Mark as seen
-                    await client.messageFlagsAdd(message.uid, ['\\Seen'], { uid: true });
-                }
+        // --- Step 1: Catch up on any missed unseen emails ---
+        {
+            const lock = await client.getMailboxLock('INBOX');
+            let unseenUids = [];
+            try {
+                unseenUids = await client.search({ unseen: true }, { uid: true });
+            } finally {
+                lock.release();
             }
 
-            // Now enter IDLE mode — server pushes "exists" event the INSTANT a new email arrives
-            console.log('[Email Listener] Entering IDLE mode. Waiting for new emails...');
-
-            client.on('exists', async (data) => {
-                // data.count = total messages now, data.prevCount = before
-                if (data.count <= data.prevCount) return;
-
-                console.log(`[Email Listener] New mail detected via IDLE! Fetching...`);
-                try {
-                    // Fetch only the new message(s) — seq from prevCount+1 to count
-                    for await (const message of client.fetch(`${data.prevCount + 1}:${data.count}`, { source: true, uid: true })) {
-                        const parsed = await simpleParser(message.source);
-                        await processMessage(client, message.uid, parsed);
-                        await client.messageFlagsAdd(message.uid, ['\\Seen'], { uid: true });
-                    }
-                } catch (fetchErr) {
-                    console.error('[Email Listener] Error fetching new message:', fetchErr.message);
-                }
-            });
-
-            // Keep IDLE connection alive indefinitely (imapflow handles IDLE renewal automatically)
-            await new Promise((_, reject) => {
-                client.on('error', reject);
-                // Connection closed externally
-                client.on('close', () => reject(new Error('Connection closed')));
-            });
-
-        } finally {
-            lock.release();
+            if (unseenUids.length > 0) {
+                console.log(`[Email Listener] Catch-up: ${unseenUids.length} unseen email(s).`);
+                await processMessage(client, unseenUids, true);
+            }
         }
 
+        // --- Step 2: Listen for new emails via IDLE (server push) ---
+        // The 'exists' event fires the INSTANT the server delivers a new message.
+        // We must NOT hold a mailbox lock when waiting for this event.
+        let totalMessages = 0;
+        {
+            // Get current message count so we know the baseline
+            const lock = await client.getMailboxLock('INBOX');
+            try {
+                totalMessages = client.mailbox.exists;
+            } finally {
+                lock.release();
+            }
+        }
+
+        client.on('exists', async (data) => {
+            // data.count = new total, data.prevCount = before the new message
+            const prevCount = data.prevCount ?? totalMessages;
+            const newCount = data.count;
+            totalMessages = newCount;
+
+            if (newCount <= prevCount) return; // no new messages, just a sync event
+
+            console.log(`[Email Listener] IDLE: new mail! (${prevCount} → ${newCount}). Fetching...`);
+            // Fetch by sequence range of new messages
+            await processMessage(client, `${prevCount + 1}:${newCount}`);
+        });
+
+        console.log('[Email Listener] IDLE active. Instant detection enabled.');
+
+        // idle() keeps the IMAP connection in IDLE state, renewing every 29 minutes
+        // It resolves only when the connection drops
+        await client.idle();
+
     } catch (err) {
-        console.error('[Email Listener] Fatal error, reconnecting in 10s:', err.message);
+        console.error('[Email Listener] Fatal, reconnecting in 10s:', err.message);
         try { await client.logout(); } catch (_) {}
         setTimeout(startEmailListener, 10000);
     }
@@ -162,6 +183,6 @@ async function sendReply(invId, verdictData, senderEmail) {
 
         console.log(`[Email Responder] Sent reply for case ${invId} to ${senderEmail}`);
     } catch (err) {
-        console.error(`[Email Responder] Error sending reply for case ${invId}:`, err.message);
+        console.error(`[Email Responder] Error:`, err.message);
     }
 }

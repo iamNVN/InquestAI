@@ -37,8 +37,15 @@ const sequelize = new Sequelize(process.env.DB_NAME || 'inquest', process.env.DB
   } : {}
 });
 
+function generateShortId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = '';
+  for (let i = 0; i < 5; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
 const Investigation = sequelize.define('Investigation', {
-  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  id: { type: DataTypes.STRING(10), defaultValue: generateShortId, primaryKey: true },
   message_id: { type: DataTypes.STRING(500), unique: true, allowNull: true },
   raw_email: { type: DataTypes.TEXT('long') },
   status: { type: DataTypes.STRING, defaultValue: 'running' },
@@ -46,7 +53,7 @@ const Investigation = sequelize.define('Investigation', {
 
 const EvidenceEntry = sequelize.define('EvidenceEntry', {
   id: { type: DataTypes.STRING, primaryKey: true },
-  investigation_id: { type: DataTypes.UUID },
+  investigation_id: { type: DataTypes.STRING(10) },
   type: { type: DataTypes.STRING },
   agent: { type: DataTypes.STRING },
   summary: { type: DataTypes.TEXT },
@@ -59,7 +66,7 @@ const EvidenceEntry = sequelize.define('EvidenceEntry', {
 
 const GraphEdge = sequelize.define('GraphEdge', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  investigation_id: { type: DataTypes.UUID },
+  investigation_id: { type: DataTypes.STRING(10) },
   from_node: { type: DataTypes.STRING },
   to_node: { type: DataTypes.STRING },
   edge_type: { type: DataTypes.STRING },
@@ -68,7 +75,7 @@ const GraphEdge = sequelize.define('GraphEdge', {
 }, { timestamps: false });
 
 const Verdict = sequelize.define('Verdict', {
-  investigation_id: { type: DataTypes.UUID, primaryKey: true },
+  investigation_id: { type: DataTypes.STRING(10), primaryKey: true },
   verdict: { type: DataTypes.STRING },
   risk_level: { type: DataTypes.STRING },
   confidence: { type: DataTypes.STRING },
@@ -83,7 +90,7 @@ const Verdict = sequelize.define('Verdict', {
 
 const HearingDialogue = sequelize.define('HearingDialogue', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  investigation_id: { type: DataTypes.UUID },
+  investigation_id: { type: DataTypes.STRING(10) },
   agent: { type: DataTypes.STRING }, // 'prosecutor', 'defense', 'judge'
   statement: { type: DataTypes.TEXT('long') },
 }, { timestamps: true, createdAt: 'timestamp', updatedAt: false });
