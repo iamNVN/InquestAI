@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="header-logo">
+      <img src="icon.png" alt="InquestAI">
+      InquestAI Shield
+    </div>
+    
+    <div id="status">
+      <div class="scanning-spinner" id="spinner"></div>
+      <span id="status-text">Scanning environment...</span>
+    </div>
+
+    <div id="content-container" style="display:none;" class="card">
+      <div class="inquest-header">
+        <span style="color: #f3f4f6;">Local Verdict</span>
+        <span class="inquest-badge" id="verdict-badge"></span>
+      </div>
+      <ul class="inquest-findings" id="findings-list"></ul>
+      <button class="inquest-btn" id="inquest-log-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Escalate to Courtroom
+      </button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

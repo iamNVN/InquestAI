@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "InquestAI Email Scanner",
+  "version": "1.0",
+  "description": "Instantly scans Gmail messages for phishing using an on-device heuristic engine.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["*://mail.google.com/*", "http://18.60.241.151/*"],
+  "content_scripts": [
+    {
+      "matches": ["*://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "InquestAI Email Scanner",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
