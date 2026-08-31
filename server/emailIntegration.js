@@ -33,24 +33,47 @@ export async function startEmailListener() {
     try {
         console.log('[Email Listener] Connecting to IMAP server...');
         const connection = await imaps.connect(imapConfig);
-        await connection.openBox('INBOX');
+        const box = await connection.openBox('INBOX');
         console.log('[Email Listener] Connected and watching INBOX.');
 
-        // Removed slow ALL search on startup
+        let highestUidSeen = box.uidnext ? box.uidnext - 1 : 0;
+        if (!highestUidSeen) {
+            const msgs = await connection.search(['ALL'], { bodies: [] });
+            if (msgs.length > 0) highestUidSeen = Math.max(...msgs.map(m => m.attributes.uid));
+        }
+        console.log(`[Email Listener] Initialized with highest UID: ${highestUidSeen}`);
 
         let isFetching = false;
         const fetchNewMails = async () => {
             if (isFetching) return;
             isFetching = true;
             try {
-                const newMessages = await connection.search(['UNSEEN'], {
-                    bodies: [''],
-                    markSeen: true
-                });
+                const searchCriteria = highestUidSeen > 0 ? [['UID', `${highestUidSeen + 1}:*`]] : ['UNSEEN'];
+                
+                // 1. Fetch only UIDs first (no bodies) to avoid downloading large old/duplicate emails
+                const checkMessages = await connection.search(searchCriteria, { bodies: [] });
+                
+                // 2. Filter out UIDs we've already seen (handles IMAP * returning the max UID)
+                const newUids = checkMessages
+                    .map(m => m.attributes.uid)
+                    .filter(uid => uid > highestUidSeen);
 
-                for (const message of newMessages) {
-                    const all = message.parts.find(part => part.which === '');
-                    if (all) {
+                if (newUids.length > 0) {
+                    console.log(`[Email Listener] Found ${newUids.length} new emails. Fetching bodies...`);
+                    
+                    // 3. Fetch full bodies ONLY for the new UIDs
+                    const messagesWithBodies = await connection.search([['UID', newUids.join(',')]], {
+                        bodies: [''],
+                        markSeen: true
+                    });
+
+                    for (const message of messagesWithBodies) {
+                        const uid = message.attributes.uid;
+                        if (uid > highestUidSeen) {
+                            highestUidSeen = uid;
+                        }
+                        const all = message.parts.find(part => part.which === '');
+                        if (all) {
                             const parsed = await simpleParser(all.body);
                             
                             const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
