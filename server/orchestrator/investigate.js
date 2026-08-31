@@ -57,7 +57,8 @@ async function groqChat(systemPrompt, userMessage) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage }
     ],
-    model: "llama-3.1-8b-instant",
+    model: "llama3-8b-8192",
+    max_tokens: 60,
   });
   return completion.choices[0].message.content.trim();
 }
@@ -126,87 +127,51 @@ Respond in JSON with this exact structure:
     orchestrator.emitEvent(investigationId, 'agent_completed', { agent: 'header_forensics', claims_added: 1 });
     orchestrator.emitEvent(investigationId, 'agent_completed', { agent: 'url_redirect', claims_added: 1 });
 
-    // ─── Phase 2: Courtroom Debate (Groq Llama) ──────────────────────────────
-    const findingsStr = analysis.key_findings.join('; ');
+    const findingsStr = analysis.key_findings.slice(0, 3).join('; ');
     const isPhishing = analysis.verdict === 'PHISHING';
-    
-    const rounds = [
-      {
-        agent: 'prosecutor',
-        system: `You are the PROSECUTOR in a cybersecurity courtroom. You argue this email IS a phishing attack. Be direct and forceful. Strict limit: 1 or 2 short sentences (under 30 words).`,
-        prompt: `Key findings against this email: ${findingsStr}. Present your opening argument.`
-      },
-      {
-        agent: 'defense',
-        system: `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. You argue this email might be legitimate or that evidence is insufficient. Be skeptical and methodical. Strict limit: 1 or 2 short sentences (under 30 words).`,
-        prompt: `The prosecution claims: ${findingsStr}. Challenge their evidence.`
-      },
-      {
-        agent: 'prosecutor',
-        system: `You are the PROSECUTOR. Rebut the defense. Be concise and devastating. Strict limit: 1 or 2 short sentences (under 30 words).`,
-        prompt: `The defense questioned your evidence about: ${findingsStr}. Counter their argument with specifics.`
-      },
-      {
-        agent: 'defense',
-        system: `You are the DEFENSE ATTORNEY. Give your closing argument. Strict limit: 1 or 2 short sentences (under 30 words).`,
-        prompt: `Make your final case that the evidence is insufficient for a guilty verdict. Reference: ${findingsStr}.`
-      },
-      {
-        agent: 'judge',
-        system: `You are a JUDGE — an elderly, stern man with decades of experience on the bench. You speak slowly and with gravitas. Deliver your final ruling in 3 sentences max. You MUST end with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY." based on the verdict.`,
-        prompt: `The verdict is ${analysis.verdict} with ${analysis.confidence}% confidence. Key evidence: ${findingsStr}. Deliver your final ruling and explicitly declare the email GUILTY or NOT GUILTY.`
-      }
-    ];
 
-    for (const round of rounds) {
-      await sleep(1500);
-      let statement;
-      try {
-        // Try Groq first (fastest)
-        statement = await groqChat(round.system, round.prompt);
-      } catch (e1) {
-        console.warn(`Groq ${round.agent} failed:`, e1.message);
-        try {
-          // Fallback to Gemini 1.5 Flash
-          statement = await geminiChat(round.system, round.prompt);
-        } catch (e2) {
-          console.warn(`Gemini ${round.agent} failed:`, e2.message);
-          
-          // Use a stateful fallback counter if it doesn't exist on the orchestrator yet
-        if (!orchestrator.fallbackCounts) orchestrator.fallbackCounts = {};
-        const count = (orchestrator.fallbackCounts[round.agent] || 0);
-        orchestrator.fallbackCounts[round.agent] = count + 1;
+    // Fallback statement generator
+    const fallback = (agent) => {
+      if (agent === 'prosecutor') return `The evidence of ${analysis.key_findings[0]} is clear proof of phishing. This email must be blocked immediately.`;
+      if (agent === 'defense') return `The prosecution's evidence is circumstantial. Legitimate emails can share these traits.`;
+      return `Having reviewed all arguments, ${analysis.summary} This Court finds the email ${analysis.verdict === 'PHISHING' ? 'GUILTY of being a phishing attempt' : 'NOT GUILTY'}.`;
+    };
 
-        // Fallback statements (different for 1st vs 2nd round)
-        const fallbacks = {
-          prosecutor: [
-            `The evidence clearly shows this is a phishing email. ${findingsStr.split(';')[0]} is undeniable proof of malicious intent.`,
-            `The defense is willfully ignoring the facts. The redirect to a suspicious URL is a textbook credential harvesting technique.`
-          ],
-          defense: [
-            `The prosecution's evidence is circumstantial at best. We cannot convict based on domain names alone without proof of actual harm.`,
-            `My client maintains that this email could simply be a poorly formatted legitimate message. There is no definitive proof of fraud.`
-          ],
-          judge: [
-            `Having carefully considered all arguments presented, this Court has reached its verdict. The evidence of ${findingsStr.split(';')[0].toLowerCase()} is compelling and cannot be dismissed. This Court finds the email ${analysis.verdict === 'PHISHING' ? 'GUILTY of being a phishing attempt' : 'NOT GUILTY'}.`
-          ]
-        };
-        
-          const agentFallbacks = fallbacks[round.agent] || ['No further comments.'];
-          statement = agentFallbacks[count % agentFallbacks.length];
+    const getStatement = async (agent, system, prompt) => {
+      try { return await groqChat(system, prompt); } catch (e1) {
+        try { return await geminiChat(system, prompt); } catch (e2) {
+          return fallback(agent);
         }
       }
+    };
 
-      await HearingDialogue.create({
-        investigation_id: investigationId,
-        agent: round.agent,
-        statement
-      });
-      orchestrator.emitEvent(investigationId, 'adversarial_update', { role: round.agent, statement });
+    // Run prosecutor and defense IN PARALLEL, then judge after
+    const [prosecutorStmt, defenseStmt] = await Promise.all([
+      getStatement('prosecutor',
+        `You are the PROSECUTOR in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
+        `Key evidence: ${findingsStr}. Argue this is a phishing email.`),
+      getStatement('defense',
+        `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
+        `Prosecution claims: ${findingsStr}. Challenge the evidence.`)
+    ]);
+
+    const judgeStmt = await getStatement('judge',
+      `You are a stern JUDGE. Deliver final ruling in 2 sentences. End with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY."`,
+      `Verdict: ${analysis.verdict} (${analysis.confidence}%). Evidence: ${findingsStr}. Rule now.`);
+
+    const dialogues = [
+      { agent: 'prosecutor', statement: prosecutorStmt },
+      { agent: 'defense', statement: defenseStmt },
+      { agent: 'judge', statement: judgeStmt },
+    ];
+
+    for (const d of dialogues) {
+      await HearingDialogue.create({ investigation_id: investigationId, agent: d.agent, statement: d.statement });
+      orchestrator.emitEvent(investigationId, 'adversarial_update', { role: d.agent, statement: d.statement });
     }
 
     // ─── Phase 3: Final Verdict ───────────────────────────────────────────────
-    await sleep(1000);
+    const isPhishing = analysis.verdict === 'PHISHING';
     const reportMarkdown = `# Inquest Investigation Report
 
 **Verdict**: ${analysis.verdict}  
