@@ -1,20 +1,8 @@
-import imaps from 'imap-simple';
+import { ImapFlow } from 'imapflow';
 import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import { Investigation } from './db.js';
 import { startInvestigation, subscribe } from './orchestrator/investigate.js';
-
-const imapConfig = {
-    imap: {
-        user: process.env.EMAIL_USER,
-        password: process.env.EMAIL_PASSWORD,
-        host: process.env.EMAIL_HOST,
-        port: 993,
-        tls: true,
-        tlsOptions: { rejectUnauthorized: false },
-        authTimeout: 30000
-    }
-};
 
 const smtpTransporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -27,100 +15,121 @@ const smtpTransporter = nodemailer.createTransport({
     tls: { rejectUnauthorized: false }
 });
 
-let highestUidSeen = 0;
+// Track message IDs we've processed this session (backup dedup layer on top of DB unique constraint)
+const processedMessageIds = new Set();
+
+async function processMessage(client, uid, parsed) {
+    const messageId = parsed.messageId || `uid-${uid}`;
+
+    // Layer 1: in-memory check (fastest)
+    if (processedMessageIds.has(messageId)) {
+        console.log(`[Email Listener] Skipping duplicate (memory): ${messageId}`);
+        return;
+    }
+    processedMessageIds.add(messageId);
+
+    const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
+    console.log(`[Email Listener] Processing: ${parsed.subject} from ${parsed.from?.text}`);
+
+    try {
+        // Layer 2: DB unique constraint on message_id prevents duplicates at database level
+        const inv = await Investigation.create({
+            message_id: messageId,
+            raw_email: rawEmail,
+            status: 'running'
+        });
+
+        const invId = inv.id;
+        console.log(`[Email Listener] Created case ${invId}`);
+
+        const unsubscribe = subscribe(invId, async (event, payload) => {
+            if (event === 'verdict_ready') {
+                unsubscribe();
+                const senderEmail = parsed.from?.value?.[0]?.address || parsed.from?.text || 'unknown';
+                await sendReply(invId, payload.verdict, senderEmail);
+            }
+        });
+
+        startInvestigation(invId, rawEmail).catch(console.error);
+    } catch (err) {
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            console.log(`[Email Listener] Skipping duplicate (DB): ${messageId}`);
+        } else {
+            console.error('[Email Listener] Error creating investigation:', err);
+        }
+    }
+}
 
 export async function startEmailListener() {
+    const client = new ImapFlow({
+        host: process.env.EMAIL_HOST,
+        port: 993,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+        },
+        tls: { rejectUnauthorized: false },
+        logger: false  // suppress verbose logging
+    });
+
+    client.on('error', (err) => {
+        console.error('[Email Listener] Connection error:', err.message);
+    });
+
     try {
-        console.log('[Email Listener] Connecting to IMAP server...');
-        const connection = await imaps.connect(imapConfig);
-        const box = await connection.openBox('INBOX');
-        console.log('[Email Listener] Connected and watching INBOX.');
+        await client.connect();
+        console.log('[Email Listener] Connected to IMAP server.');
 
-        let highestUidSeen = box.uidnext ? box.uidnext - 1 : 0;
-        if (!highestUidSeen) {
-            const msgs = await connection.search(['ALL'], { bodies: [] });
-            if (msgs.length > 0) highestUidSeen = Math.max(...msgs.map(m => m.attributes.uid));
-        }
-        console.log(`[Email Listener] Initialized with highest UID: ${highestUidSeen}`);
-
-        let isFetching = false;
-        const fetchNewMails = async () => {
-            if (isFetching) return;
-            isFetching = true;
-            try {
-                const searchCriteria = highestUidSeen > 0 ? [['UID', `${highestUidSeen + 1}:*`]] : ['UNSEEN'];
-                
-                // 1. Fetch only UIDs first (no bodies) to avoid downloading large old/duplicate emails
-                const checkMessages = await connection.search(searchCriteria, { bodies: [] });
-                
-                // 2. Filter out UIDs we've already seen (handles IMAP * returning the max UID)
-                const newUids = checkMessages
-                    .map(m => m.attributes.uid)
-                    .filter(uid => uid > highestUidSeen);
-
-                if (newUids.length > 0) {
-                    console.log(`[Email Listener] Found ${newUids.length} new emails. Fetching bodies...`);
-                    
-                    // 3. Fetch full bodies ONLY for the new UIDs
-                    const messagesWithBodies = await connection.search([['UID', newUids.join(',')]], {
-                        bodies: [''],
-                        markSeen: true
-                    });
-
-                    for (const message of messagesWithBodies) {
-                        const uid = message.attributes.uid;
-                        if (uid > highestUidSeen) {
-                            highestUidSeen = uid;
-                        }
-                        const all = message.parts.find(part => part.which === '');
-                        if (all) {
-                            const parsed = await simpleParser(all.body);
-                            
-                            const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
-                            console.log(`[Email Listener] Processed new email from ${parsed.from?.text} - Subject: ${parsed.subject}`);
-
-                            const inv = await Investigation.create({ raw_email: rawEmail, status: 'running' });
-                            const invId = inv.id;
-                            
-                            const unsubscribe = subscribe(invId, async (event, payload) => {
-                                if (event === 'verdict_ready') {
-                                    unsubscribe();
-                                    const senderEmail = parsed.from?.value?.[0]?.address || parsed.from?.text || 'unknown';
-                                    await sendReply(invId, payload.verdict, senderEmail);
-                                }
-                            });
-
-                            startInvestigation(invId, rawEmail).catch(console.error);
-                        }
-                    }
+        const lock = await client.getMailboxLock('INBOX');
+        try {
+            // Fetch any unseen emails that arrived while server was down (catch-up)
+            const unseenUids = await client.search({ unseen: true });
+            if (unseenUids.length > 0) {
+                console.log(`[Email Listener] Catch-up: ${unseenUids.length} unseen email(s) found.`);
+                for await (const message of client.fetch(unseenUids, { source: true, uid: true })) {
+                    const parsed = await simpleParser(message.source);
+                    await processMessage(client, message.uid, parsed);
+                    // Mark as seen
+                    await client.messageFlagsAdd(message.uid, ['\\Seen'], { uid: true });
                 }
-            } catch (err) {
-                console.error('[Email Listener] Error processing new mail:', err);
-            } finally {
-                isFetching = false;
             }
-        };
 
-        const pollInterval = setInterval(fetchNewMails, 5000);
+            // Now enter IDLE mode — server pushes "exists" event the INSTANT a new email arrives
+            console.log('[Email Listener] Entering IDLE mode. Waiting for new emails...');
 
-        connection.on('mail', async (numNewMsgs) => {
-            console.log(`[Email Listener] New mail event triggered. Messages: ${numNewMsgs}`);
-            await fetchNewMails();
-        });
+            client.on('exists', async (data) => {
+                // data.count = total messages now, data.prevCount = before
+                if (data.count <= data.prevCount) return;
 
-        connection.on('error', (err) => {
-            console.error('[Email Listener] Connection error:', err);
-        });
+                console.log(`[Email Listener] New mail detected via IDLE! Fetching...`);
+                try {
+                    // Fetch only the new message(s) — seq from prevCount+1 to count
+                    for await (const message of client.fetch(`${data.prevCount + 1}:${data.count}`, { source: true, uid: true })) {
+                        const parsed = await simpleParser(message.source);
+                        await processMessage(client, message.uid, parsed);
+                        await client.messageFlagsAdd(message.uid, ['\\Seen'], { uid: true });
+                    }
+                } catch (fetchErr) {
+                    console.error('[Email Listener] Error fetching new message:', fetchErr.message);
+                }
+            });
 
-        connection.on('close', () => {
-            clearInterval(pollInterval);
-            console.log('[Email Listener] Connection closed, reconnecting in 5s...');
-            setTimeout(startEmailListener, 5000);
-        });
+            // Keep IDLE connection alive indefinitely (imapflow handles IDLE renewal automatically)
+            await new Promise((_, reject) => {
+                client.on('error', reject);
+                // Connection closed externally
+                client.on('close', () => reject(new Error('Connection closed')));
+            });
+
+        } finally {
+            lock.release();
+        }
 
     } catch (err) {
-        console.error('[Email Listener] Failed to start:', err);
-        setTimeout(startEmailListener, 5000);
+        console.error('[Email Listener] Fatal error, reconnecting in 10s:', err.message);
+        try { await client.logout(); } catch (_) {}
+        setTimeout(startEmailListener, 10000);
     }
 }
 
@@ -128,8 +137,7 @@ async function sendReply(invId, verdictData, senderEmail) {
     try {
         const dashboardLink = `http://18.60.241.151/court/${invId}`;
         const reportLink = `http://18.60.241.151/report/${invId}`;
-        const recipient = senderEmail; 
-        
+
         const htmlBody = `
             <h2>Inquest AI Investigation Complete</h2>
             <p>A new email submitted to the courtroom has been fully analyzed.</p>
@@ -147,13 +155,13 @@ async function sendReply(invId, verdictData, senderEmail) {
 
         await smtpTransporter.sendMail({
             from: '"Inquest AI Courtroom" <courtroom@iamnvn.in>',
-            to: recipient,
+            to: senderEmail,
             subject: `[Analyzed] Verdict: ${verdictData.verdict} - Case #${invId}`,
             html: htmlBody
         });
 
-        console.log(`[Email Responder] Successfully sent reply for case ${invId} to ${recipient}`);
+        console.log(`[Email Responder] Sent reply for case ${invId} to ${senderEmail}`);
     } catch (err) {
-        console.error(`[Email Responder] Error sending reply for case ${invId}:`, err);
+        console.error(`[Email Responder] Error sending reply for case ${invId}:`, err.message);
     }
 }

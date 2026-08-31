@@ -39,6 +39,7 @@ const sequelize = new Sequelize(process.env.DB_NAME || 'inquest', process.env.DB
 
 const Investigation = sequelize.define('Investigation', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  message_id: { type: DataTypes.STRING(500), unique: true, allowNull: true },
   raw_email: { type: DataTypes.TEXT('long') },
   status: { type: DataTypes.STRING, defaultValue: 'running' },
 }, { timestamps: true, createdAt: 'created_at', updatedAt: false });
