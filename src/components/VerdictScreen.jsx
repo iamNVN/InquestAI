@@ -21,7 +21,7 @@ const HeaderLogo = () => (
 
 // We will use the provided png images for the scale icon
 
-export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal, verdict = 'guilty' }) {
+export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal, verdict = 'guilty', confidence, reason }) {
   const { t } = useLanguage();
   const isPending = verdict === 'pending';
   const isGuilty = verdict === 'guilty';
@@ -181,7 +181,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
                 </h2>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', color: '#ccc' }}>{t('confidence')}: 92%</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', color: '#ccc' }}>{t('confidence')}: {confidence ?? 92}%</span>
                   <div style={{ width: '220px', height: '9px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', display: 'flex', gap: '3px' }}>
                     <div style={{ flex: 1, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)' }}></div>
                     <div style={{ flex: 1, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)' }}></div>
@@ -216,7 +216,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
                     fontSize: '0.95rem',
                     lineHeight: 1.6
                   }}>
-                    {t('verdict_reason_default')}
+                    {reason || t('verdict_reason_default')}
                   </div>
                 </div>
 

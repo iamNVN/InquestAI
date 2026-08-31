@@ -110,10 +110,11 @@ app.get('/api/cases', async (req, res) => {
     let sender = 'unknown';
     let subject = c.Verdict ? (c.Verdict.verdict === 'PHISHING' ? 'Urgent: Verify Account' : 'Legitimate Request') : 'Pending Analysis...';
     if (c.raw_email) {
-      const fromMatch = c.raw_email.match(/From:\s*(.*)/i);
-      const subMatch = c.raw_email.match(/Subject:\s*(.*)/i);
-      if (fromMatch) sender = fromMatch[1];
-      if (subMatch) subject = subMatch[1];
+      const fromMatches = [...c.raw_email.matchAll(/^From:\s*(.*)/gim)];
+      let fromMatch = fromMatches.length > 1 ? fromMatches[1] : fromMatches[0];
+      const subMatch = c.raw_email.match(/^Subject:\s*(.*)/im);
+      if (fromMatch) sender = fromMatch[1].trim();
+      if (subMatch) subject = subMatch[1].trim();
     }
     return {
       id: c.id,

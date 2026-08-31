@@ -71,6 +71,7 @@ const Verdict = sequelize.define('Verdict', {
   verdict: { type: DataTypes.STRING },
   risk_level: { type: DataTypes.STRING },
   confidence: { type: DataTypes.STRING },
+  summary: { type: DataTypes.TEXT },
   key_evidence: { type: DataTypes.JSON },
   counter_evidence: { type: DataTypes.JSON },
   iocs: { type: DataTypes.JSON },

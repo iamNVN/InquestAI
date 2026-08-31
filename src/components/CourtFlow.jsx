@@ -61,6 +61,8 @@ export default function CourtFlow() {
             onViewHearing={handleViewHearing}
             onGenerateReport={handleGenerateReport}
             verdict={investigation?.verdict?.verdict === 'PHISHING' ? 'guilty' : (investigation?.verdict?.verdict === 'LEGITIMATE' ? 'safe' : 'pending')}
+            confidence={investigation?.verdict?.confidence}
+            reason={investigation?.verdict?.summary}
           />
         )}
       </div>

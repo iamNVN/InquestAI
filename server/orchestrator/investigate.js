@@ -133,27 +133,27 @@ Respond in JSON with this exact structure:
     const rounds = [
       {
         agent: 'prosecutor',
-        system: `You are the PROSECUTOR in a cybersecurity courtroom. You argue this email IS a phishing attack. Be direct and forceful. 2-3 sentences max.`,
+        system: `You are the PROSECUTOR in a cybersecurity courtroom. You argue this email IS a phishing attack. Be direct and forceful. Strict limit: 1 or 2 short sentences (under 30 words).`,
         prompt: `Key findings against this email: ${findingsStr}. Present your opening argument.`
       },
       {
         agent: 'defense',
-        system: `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. You argue this email might be legitimate or that evidence is insufficient. Be skeptical and methodical. 2-3 sentences max.`,
+        system: `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. You argue this email might be legitimate or that evidence is insufficient. Be skeptical and methodical. Strict limit: 1 or 2 short sentences (under 30 words).`,
         prompt: `The prosecution claims: ${findingsStr}. Challenge their evidence.`
       },
       {
         agent: 'prosecutor',
-        system: `You are the PROSECUTOR. Rebut the defense. Be concise and devastating. 2-3 sentences max.`,
+        system: `You are the PROSECUTOR. Rebut the defense. Be concise and devastating. Strict limit: 1 or 2 short sentences (under 30 words).`,
         prompt: `The defense questioned your evidence about: ${findingsStr}. Counter their argument with specifics.`
       },
       {
         agent: 'defense',
-        system: `You are the DEFENSE ATTORNEY. Give your closing argument. 2-3 sentences max.`,
+        system: `You are the DEFENSE ATTORNEY. Give your closing argument. Strict limit: 1 or 2 short sentences (under 30 words).`,
         prompt: `Make your final case that the evidence is insufficient for a guilty verdict. Reference: ${findingsStr}.`
       },
       {
         agent: 'judge',
-        system: `You are a JUDGE — an elderly, stern man with decades of experience on the bench. You speak slowly and with gravitas. Deliver your final ruling in 3 sentences. You MUST end with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY." based on the verdict.`,
+        system: `You are a JUDGE — an elderly, stern man with decades of experience on the bench. You speak slowly and with gravitas. Deliver your final ruling in 3 sentences max. You MUST end with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY." based on the verdict.`,
         prompt: `The verdict is ${analysis.verdict} with ${analysis.confidence}% confidence. Key evidence: ${findingsStr}. Deliver your final ruling and explicitly declare the email GUILTY or NOT GUILTY.`
       }
     ];
@@ -228,6 +228,7 @@ ${isPhishing ? 'Block the sender domain, do not click any links, report to your 
       verdict: analysis.verdict,
       risk_level: analysis.risk_level,
       confidence: analysis.confidence,
+      summary: analysis.summary,
       key_evidence: analysis.key_findings,
       counter_evidence: [],
       iocs: { domains: analysis.suspicious_domain ? [analysis.suspicious_domain] : [] },

@@ -36,16 +36,12 @@ export async function startEmailListener() {
         await connection.openBox('INBOX');
         console.log('[Email Listener] Connected and watching INBOX.');
 
-        const searchCriteria = ['ALL'];
-        const fetchOptions = { bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'], struct: true };
-        const allMessages = await connection.search(searchCriteria, fetchOptions);
-        
-        if (allMessages.length > 0) {
-            highestUidSeen = Math.max(...allMessages.map(m => m.attributes.uid));
-            console.log(`[Email Listener] Initializing with highest UID: ${highestUidSeen}`);
-        }
+        // Removed slow ALL search on startup
 
+        let isFetching = false;
         const fetchNewMails = async () => {
+            if (isFetching) return;
+            isFetching = true;
             try {
                 const newMessages = await connection.search(['UNSEEN'], {
                     bodies: [''],
@@ -53,11 +49,8 @@ export async function startEmailListener() {
                 });
 
                 for (const message of newMessages) {
-                    const uid = message.attributes.uid;
-                    if (uid > highestUidSeen) {
-                        highestUidSeen = uid;
-                        const all = message.parts.find(part => part.which === '');
-                        if (all) {
+                    const all = message.parts.find(part => part.which === '');
+                    if (all) {
                             const parsed = await simpleParser(all.body);
                             
                             const rawEmail = `From: ${parsed.from?.text}\nTo: ${parsed.to?.text}\nSubject: ${parsed.subject}\nDate: ${parsed.date}\n\n${parsed.text || parsed.html || ''}`;
@@ -80,6 +73,8 @@ export async function startEmailListener() {
                 }
             } catch (err) {
                 console.error('[Email Listener] Error processing new mail:', err);
+            } finally {
+                isFetching = false;
             }
         };
 
@@ -130,7 +125,7 @@ async function sendReply(invId, verdictData, senderEmail) {
         await smtpTransporter.sendMail({
             from: '"Inquest AI Courtroom" <courtroom@iamnvn.in>',
             to: recipient,
-            subject: `[Analyzed] Verdict: ${verdictData.verdict} - Case #${invId.substring(0,6)}`,
+            subject: `[Analyzed] Verdict: ${verdictData.verdict} - Case #${invId}`,
             html: htmlBody
         });
 
