@@ -111,6 +111,24 @@ Investigation.hasMany(HearingDialogue, { foreignKey: 'investigation_id', onDelet
 
 async function syncDb() {
   await initializeDatabase();
+
+  // Auto-migration: if old UUID-based id column exists, drop all tables and recreate
+  try {
+    const [cols] = await sequelize.query(
+      `SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Investigations' AND COLUMN_NAME = 'id'`
+    );
+    if (cols.length > 0 && cols[0].CHARACTER_MAXIMUM_LENGTH > 10) {
+      console.log('[DB Migration] Old UUID schema detected. Dropping tables for clean migration...');
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+      await sequelize.query('DROP TABLE IF EXISTS HearingDialogues, Verdicts, GraphEdges, EvidenceEntries, Investigations');
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+      console.log('[DB Migration] Old tables dropped. Recreating with 5-char ID schema...');
+    }
+  } catch (_) {
+    // Table doesn't exist yet — nothing to migrate
+  }
+
   await sequelize.sync({ alter: true });
   console.log('Database synced');
 }
