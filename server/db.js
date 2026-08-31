@@ -45,11 +45,17 @@ function generateShortId() {
 }
 
 const Investigation = sequelize.define('Investigation', {
-  id: { type: DataTypes.STRING(10), defaultValue: generateShortId, primaryKey: true },
+  id: { type: DataTypes.STRING(10), primaryKey: true },
   message_id: { type: DataTypes.STRING(500), unique: true, allowNull: true },
   raw_email: { type: DataTypes.TEXT('long') },
   status: { type: DataTypes.STRING, defaultValue: 'running' },
 }, { timestamps: true, createdAt: 'created_at', updatedAt: false });
+
+// Use hook so Sequelize reliably generates the ID before each insert
+Investigation.beforeCreate((inv) => {
+  if (!inv.id) inv.id = generateShortId();
+});
+
 
 const EvidenceEntry = sequelize.define('EvidenceEntry', {
   id: { type: DataTypes.STRING, primaryKey: true },
