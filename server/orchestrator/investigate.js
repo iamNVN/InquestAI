@@ -127,50 +127,7 @@ Respond in JSON with this exact structure:
     orchestrator.emitEvent(investigationId, 'agent_completed', { agent: 'header_forensics', claims_added: 1 });
     orchestrator.emitEvent(investigationId, 'agent_completed', { agent: 'url_redirect', claims_added: 1 });
 
-    const findingsStr = analysis.key_findings.slice(0, 3).join('; ');
-    const isPhishing = analysis.verdict === 'PHISHING';
-
-    // Fallback statement generator
-    const fallback = (agent) => {
-      if (agent === 'prosecutor') return `The evidence of ${analysis.key_findings[0]} is clear proof of phishing. This email must be blocked immediately.`;
-      if (agent === 'defense') return `The prosecution's evidence is circumstantial. Legitimate emails can share these traits.`;
-      return `Having reviewed all arguments, ${analysis.summary} This Court finds the email ${analysis.verdict === 'PHISHING' ? 'GUILTY of being a phishing attempt' : 'NOT GUILTY'}.`;
-    };
-
-    const getStatement = async (agent, system, prompt) => {
-      try { return await groqChat(system, prompt); } catch (e1) {
-        try { return await geminiChat(system, prompt); } catch (e2) {
-          return fallback(agent);
-        }
-      }
-    };
-
-    // Run prosecutor and defense IN PARALLEL, then judge after
-    const [prosecutorStmt, defenseStmt] = await Promise.all([
-      getStatement('prosecutor',
-        `You are the PROSECUTOR in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
-        `Key evidence: ${findingsStr}. Argue this is a phishing email.`),
-      getStatement('defense',
-        `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
-        `Prosecution claims: ${findingsStr}. Challenge the evidence.`)
-    ]);
-
-    const judgeStmt = await getStatement('judge',
-      `You are a stern JUDGE. Deliver final ruling in 2 sentences. End with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY."`,
-      `Verdict: ${analysis.verdict} (${analysis.confidence}%). Evidence: ${findingsStr}. Rule now.`);
-
-    const dialogues = [
-      { agent: 'prosecutor', statement: prosecutorStmt },
-      { agent: 'defense', statement: defenseStmt },
-      { agent: 'judge', statement: judgeStmt },
-    ];
-
-    for (const d of dialogues) {
-      await HearingDialogue.create({ investigation_id: investigationId, agent: d.agent, statement: d.statement });
-      orchestrator.emitEvent(investigationId, 'adversarial_update', { role: d.agent, statement: d.statement });
-    }
-
-    // ─── Phase 3: Final Verdict ───────────────────────────────────────────────
+    // ─── Phase 2: Instant Verdict (save + emit NOW, before debate) ───────────
     const isPhishing = analysis.verdict === 'PHISHING';
     const reportMarkdown = `# Inquest Investigation Report
 
@@ -203,9 +160,59 @@ ${isPhishing ? 'Block the sender domain, do not click any links, report to your 
     });
 
     await Investigation.update({ status: 'complete' }, { where: { id: investigationId } });
-    orchestrator.emitEvent(investigationId, 'verdict_ready', { verdict: analysis });
 
-    console.log(`[Investigation ${investigationId}] Complete. Verdict: ${analysis.verdict} (${analysis.confidence}%)`);
+    // ✅ EMIT VERDICT IMMEDIATELY — user sees result right away
+    orchestrator.emitEvent(investigationId, 'verdict_ready', { verdict: analysis });
+    console.log(`[Investigation ${investigationId}] Verdict emitted: ${analysis.verdict} (${analysis.confidence}%)`);
+
+    // ─── Phase 3: Courtroom Debate (runs ASYNC in background) ────────────────
+    // Don't await — this runs after the verdict is already shown to the user
+    (async () => {
+      try {
+        const findingsStr = analysis.key_findings.slice(0, 3).join('; ');
+
+        const fallback = (agent) => {
+          if (agent === 'prosecutor') return `The evidence of ${analysis.key_findings[0]} is clear proof of phishing. This email must be blocked immediately.`;
+          if (agent === 'defense') return `The prosecution's evidence is circumstantial. Legitimate emails can share these traits.`;
+          return `Having reviewed all arguments, ${analysis.summary} This Court finds the email ${analysis.verdict === 'PHISHING' ? 'GUILTY of being a phishing attempt' : 'NOT GUILTY'}.`;
+        };
+
+        const getStatement = async (agent, system, prompt) => {
+          try { return await groqChat(system, prompt); } catch (e1) {
+            try { return await geminiChat(system, prompt); } catch (e2) {
+              return fallback(agent);
+            }
+          }
+        };
+
+        // Run prosecutor + defense in parallel
+        const [prosecutorStmt, defenseStmt] = await Promise.all([
+          getStatement('prosecutor',
+            `You are the PROSECUTOR in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
+            `Key evidence: ${findingsStr}. Argue this is a phishing email.`),
+          getStatement('defense',
+            `You are the DEFENSE ATTORNEY in a cybersecurity courtroom. 1-2 sentences, under 25 words.`,
+            `Prosecution claims: ${findingsStr}. Challenge the evidence.`)
+        ]);
+
+        const judgeStmt = await getStatement('judge',
+          `You are a stern JUDGE. Deliver final ruling in 2 sentences. End with exactly: "This Court finds the email GUILTY of being a phishing attempt." or "This Court finds the email NOT GUILTY."`,
+          `Verdict: ${analysis.verdict} (${analysis.confidence}%). Evidence: ${findingsStr}. Rule now.`);
+
+        for (const d of [
+          { agent: 'prosecutor', statement: prosecutorStmt },
+          { agent: 'defense', statement: defenseStmt },
+          { agent: 'judge', statement: judgeStmt },
+        ]) {
+          await HearingDialogue.create({ investigation_id: investigationId, agent: d.agent, statement: d.statement });
+          orchestrator.emitEvent(investigationId, 'adversarial_update', { role: d.agent, statement: d.statement });
+        }
+
+        console.log(`[Investigation ${investigationId}] Hearing complete.`);
+      } catch (debateErr) {
+        console.error(`[Investigation ${investigationId}] Debate error:`, debateErr.message);
+      }
+    })();
 
   } catch (err) {
     console.error(`[Investigation ${investigationId}] Failed:`, err);
