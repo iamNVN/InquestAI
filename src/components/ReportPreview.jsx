@@ -145,7 +145,7 @@ export default function ReportPreview() {
           maxWidth: '800px',
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
           boxSizing: 'border-box',
-          padding: '20mm', // This is for DOM display, html2pdf will ignore if we set margins in options
+          padding: '0', // html2canvas renders padding directly; html2pdf margin handles the page border
         }}>
           
           {/* Header line */}
