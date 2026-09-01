@@ -1,15 +1,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../LanguageContext';
+import Cookies from 'js-cookie';
 import LanguageDropdown from './LanguageDropdown';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    localStorage.setItem('isLoggedIn', 'true');
-    navigate('/dashboard');
+  const handleLogin = async () => {
+    try {
+      const response = await fetch('/api/auth/login', { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        Cookies.set('isLoggedIn', 'true', { expires: 1 });
+        Cookies.set('userEmail', data.email, { expires: 1 });
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error("Login failed", err);
+    }
   };
 
   return (

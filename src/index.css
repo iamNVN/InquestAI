@@ -237,3 +237,19 @@ button {
 .animate-slide-up {
   animation: slideUp 0.2s ease-out forwards;
 }
+
+@keyframes pulseRed {
+  0% { box-shadow: 0 0 20px rgba(255,0,0,0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 40px rgba(255,0,0,0.6); transform: scale(1.05); }
+  100% { box-shadow: 0 0 20px rgba(255,0,0,0.3); transform: scale(1); }
+}
+@keyframes pulseBlue {
+  0% { box-shadow: 0 0 20px rgba(50,150,255,0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 40px rgba(50,150,255,0.6); transform: scale(1.05); }
+  100% { box-shadow: 0 0 20px rgba(50,150,255,0.3); transform: scale(1); }
+}
+
+
+.speaking-prosecutor { animation: pulseRed 1.5s infinite !important; }
+.speaking-defense { animation: pulseBlue 1.5s infinite !important; }
+
