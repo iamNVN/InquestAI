@@ -1,4 +1,5 @@
 import React from 'react';
+import LanguageDropdown from './LanguageDropdown';
 
 const HeaderLogo = () => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -64,24 +65,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
             cursor: 'pointer',
             transition: 'all 0.2s'
           }}>Need Help?</button>
-          <button style={{
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: '#e0e0e0',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '8px',
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s'
-          }}>
-            English
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
+          <LanguageDropdown />
         </div>
       </div>
 
