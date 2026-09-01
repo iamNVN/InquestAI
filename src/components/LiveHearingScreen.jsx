@@ -49,7 +49,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
   }, [elapsed, onHearingComplete]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '2rem 4rem', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '2rem 4rem', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
 
       {/* Main Content Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, padding: '0 4rem', marginTop: '8vh' }}>

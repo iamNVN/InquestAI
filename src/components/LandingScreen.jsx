@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LanguageDropdown from './LanguageDropdown';
 import { useLanguage } from '../LanguageContext';
 
@@ -46,12 +47,13 @@ const CopyIcon = () => (
   </svg>
 );
 
-export default function LandingScreen({ onForward, onDashboardClick }) {
+export default function LandingScreen() {
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
   const { t } = useLanguage();
 
   return (
-    <div style={{
+    <div className="animate-fade-in" style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -63,7 +65,9 @@ export default function LandingScreen({ onForward, onDashboardClick }) {
       textAlign: 'center',
       zIndex: 10,
       position: 'relative',
-      background: 'radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 70%)'
+      background: 'radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 70%)',
+      backdropFilter: 'blur(3px)',
+      WebkitBackdropFilter: 'blur(3px)'
     }}>
 
       {/* Top Navigation */}
@@ -79,7 +83,7 @@ export default function LandingScreen({ onForward, onDashboardClick }) {
           fontSize: '0.95rem',
           cursor: 'pointer',
           transition: 'all 0.2s'
-        }} onClick={onDashboardClick}>{t('dashboard')}</button>
+        }} onClick={() => navigate('/dashboard')}>{t('dashboard')}</button>
         <LanguageDropdown />
       </div>
 

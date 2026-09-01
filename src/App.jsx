@@ -1,21 +1,34 @@
-import { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LandingScreen from './components/LandingScreen';
-import VerdictScreen from './components/VerdictScreen';
-import LiveHearingScreen from './components/LiveHearingScreen';
-import ReportPreview from './components/ReportPreview';
+import LoginScreen from './components/LoginScreen';
 import DashboardScreen from './components/DashboardScreen';
+import CourtFlow from './components/CourtFlow';
+import ReportPreview from './components/ReportPreview';
 import { LanguageProvider } from './LanguageContext';
 
-function App() {
-  const [currentScreen, setCurrentScreen] = useState(() => {
-    return window.location.pathname === '/court' ? 'VERDICT' : 'LANDING';
-  }); // LANDING, VERDICT, HEARING, FINAL
-  const [showReport, setShowReport] = useState(false);
+const ProtectedRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+function AppContent() {
+  const location = useLocation();
+  const path = location.pathname;
+
+  // Report Preview has its own dark background style inline
+  const isVideoBg = path === '/' || path === '/login' || path.startsWith('/court');
+  const videoKey = (path === '/' || path === '/login') ? 'landing-vid' : 'verdict-vid';
+  const videoSrc = (path === '/' || path === '/login') ? "/background/1.mp4" : "/background/2.mp4";
 
   return (
-    <LanguageProvider>
-      {currentScreen === 'LANDING' ? (
+    <>
+      {isVideoBg ? (
         <video
+          key={videoKey}
           autoPlay
           loop
           muted
@@ -30,7 +43,7 @@ function App() {
             left: 0
           }}
         >
-          <source src="/background/1.mp4" type="video/mp4" />
+          <source src={videoSrc} type="video/mp4" />
         </video>
       ) : (
         <div
@@ -41,48 +54,40 @@ function App() {
             zIndex: -1,
             top: 0,
             left: 0,
-            backgroundImage: currentScreen === 'HEARING' ? "url('/background/courtroom.png')" : currentScreen === 'DASHBOARD' ? "url('/background/dashboard.png')" : "url('/background/2.png')",
+            backgroundImage: (path.startsWith('/dashboard') || path.startsWith('/my') || path.startsWith('/support')) ? "url('/background/dashboard.png')" : "url('/background/2.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundColor: '#000'
           }}
         />
       )}
-      
-      {currentScreen === 'LANDING' && (
-        <LandingScreen 
-          onForward={() => setCurrentScreen('VERDICT')} 
-          onDashboardClick={() => setCurrentScreen('DASHBOARD')}
-        />
-      )}
-      
-      {currentScreen === 'VERDICT' && (
-        <VerdictScreen 
-          isFinal={false}
-          onViewHearing={() => setCurrentScreen('HEARING')}
-          onGenerateReport={() => setShowReport(true)}
-        />
-      )}
 
-      {currentScreen === 'DASHBOARD' && (
-        <DashboardScreen onBack={() => setCurrentScreen('LANDING')} />
-      )}
-      
-      {currentScreen === 'HEARING' && (
-        <LiveHearingScreen onHearingComplete={() => setCurrentScreen('FINAL')} />
-      )}
+      <Routes>
+        <Route path="/" element={<LandingScreen />} />
+        <Route path="/login" element={<LoginScreen />} />
+        
+        {/* Protected Dashboard Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardScreen /></ProtectedRoute>} />
+        <Route path="/mycases" element={<ProtectedRoute><DashboardScreen /></ProtectedRoute>} />
+        <Route path="/myreports" element={<ProtectedRoute><DashboardScreen /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><DashboardScreen /></ProtectedRoute>} />
 
-      {currentScreen === 'FINAL' && (
-        <VerdictScreen 
-          isFinal={true}
-          onViewHearing={() => setCurrentScreen('HEARING')}
-          onGenerateReport={() => setShowReport(true)}
-        />
-      )}
+        <Route path="/court/:caseID" element={<CourtFlow />} />
+        <Route path="/report/:reportID" element={<ReportPreview />} />
+        
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+}
 
-      {showReport && (
-        <ReportPreview onClose={() => setShowReport(false)} />
-      )}
+function App() {
+  return (
+    <LanguageProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </LanguageProvider>
   );
 }
