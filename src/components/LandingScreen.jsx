@@ -180,9 +180,21 @@ export default function LandingScreen() {
             </h3>
             <button
               onClick={() => {
-                navigator.clipboard.writeText('courtroom@iamnvn.in');
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2500);
+                if (navigator.clipboard && window.isSecureContext) {
+                  navigator.clipboard.writeText('courtroom@iamnvn.in');
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2500);
+                } else {
+                  // Fallback or warning if clipboard not available
+                  const textArea = document.createElement("textarea");
+                  textArea.value = 'courtroom@iamnvn.in';
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2500);
+                }
               }}
               style={{
                 background: copied ? 'rgba(212, 184, 114, 0.2)' : 'rgba(0,0,0,0.4)',

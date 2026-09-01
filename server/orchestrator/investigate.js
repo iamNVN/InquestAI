@@ -40,13 +40,13 @@ const orchestrator = new InvestigationEmitter();
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function geminiAnalyze(prompt) {
-  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genai.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
   const result = await model.generateContent(prompt);
   return result.response.text();
 }
 
 async function geminiChat(systemPrompt, userMessage) {
-  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: systemPrompt });
+  const model = genai.getGenerativeModel({ model: 'gemini-3.5-flash-lite', systemInstruction: systemPrompt });
   const result = await model.generateContent(userMessage);
   return result.response.text().trim();
 }
@@ -57,7 +57,7 @@ async function groqChat(systemPrompt, userMessage) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage }
     ],
-    model: "llama3-8b-8192",
+    model: "llama-3.1-8b-instant",
   });
   return completion.choices[0].message.content.trim();
 }
