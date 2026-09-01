@@ -1,5 +1,26 @@
 import React, { createContext, useState, useContext } from 'react';
 
+export const translateDynamic = async (text, targetLangStr) => {
+  const langCodes = { English: 'en', Tamil: 'ta', Hindi: 'hi' };
+  const target = langCodes[targetLangStr];
+  if (!text || !target || target === 'en') return text;
+  
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+    const data = await res.json();
+    let result = '';
+    if (data && data[0]) {
+      data[0].forEach(part => {
+        if (part[0]) result += part[0];
+      });
+    }
+    return result || text;
+  } catch (e) {
+    console.error("Translation error", e);
+    return text;
+  }
+};
+
 const translations = {
   English: {
     dashboard: 'Dashboard',
