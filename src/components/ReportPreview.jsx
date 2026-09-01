@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function ReportPreview() {
+  useDocumentTitle('Inquest AI | Report Generator');
   const navigate = useNavigate();
+  const location = useLocation();
   const { reportID } = useParams();
   const [reportData, setReportData] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);

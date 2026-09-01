@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import LanguageDropdown from './LanguageDropdown';
 import { useLanguage } from '../LanguageContext';
 
@@ -48,6 +49,7 @@ const CopyIcon = () => (
 );
 
 export default function LandingScreen() {
+  useDocumentTitle('Inquest AI | Secure Phishing Analysis');
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -174,11 +176,11 @@ export default function LandingScreen() {
               fontWeight: 300,
               letterSpacing: '0.5px'
             }}>
-              courtroom@inquest.ai
+              courtroom@iamnvn.in
             </h3>
             <button
               onClick={() => {
-                navigator.clipboard.writeText('courtroom@inquest.ai');
+                navigator.clipboard.writeText('courtroom@iamnvn.in');
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2500);
               }}

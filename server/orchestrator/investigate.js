@@ -40,13 +40,13 @@ const orchestrator = new InvestigationEmitter();
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function geminiAnalyze(prompt) {
-  const model = genai.getGenerativeModel({ model: 'gemini-3.6-flash' });
+  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' });
   const result = await model.generateContent(prompt);
   return result.response.text();
 }
 
 async function geminiChat(systemPrompt, userMessage) {
-  const model = genai.getGenerativeModel({ model: 'gemini-3.6-flash', systemInstruction: systemPrompt });
+  const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: systemPrompt });
   const result = await model.generateContent(userMessage);
   return result.response.text().trim();
 }
@@ -57,7 +57,7 @@ async function groqChat(systemPrompt, userMessage) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage }
     ],
-    model: "llama-3.1-8b-instant",
+    model: "llama3-8b-8192",
   });
   return completion.choices[0].message.content.trim();
 }
@@ -72,6 +72,7 @@ export async function startInvestigation(investigationId, rawEmail) {
     orchestrator.emitEvent(investigationId, 'agent_started', { agent: 'url_redirect' });
 
     const analysisPrompt = `You are an expert email security analyst. Analyze this email for phishing indicators.
+IMPORTANT: If this email is a forwarded message (e.g., submitted by an employee for analysis), focus your analysis entirely on the ORIGINAL forwarded content and the ORIGINAL sender. Do NOT flag the person who forwarded the email as suspicious.
 
 EMAIL:
 ${rawEmail}
@@ -166,7 +167,7 @@ Respond in JSON with this exact structure:
       } catch (e1) {
         console.warn(`Groq ${round.agent} failed:`, e1.message);
         try {
-          // Fallback to Gemini 3.6 Flash
+          // Fallback to Gemini 1.5 Flash
           statement = await geminiChat(round.system, round.prompt);
         } catch (e2) {
           console.warn(`Gemini ${round.agent} failed:`, e2.message);

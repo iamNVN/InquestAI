@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../LanguageContext';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // ElevenLabs voice IDs - verified free tier defaults
 const VOICES = {
@@ -80,6 +81,7 @@ async function speakElevenLabs(text, speaker) {
 }
 
 export default function LiveHearingScreen({ caseID, verdict, confidence, onHearingComplete }) {
+  useDocumentTitle('Inquest AI | Live Hearing');
   const { t } = useLanguage();
   const [elapsed, setElapsed] = useState(0);
   
