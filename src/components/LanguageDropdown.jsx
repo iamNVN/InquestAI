@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../LanguageContext';
 
 export default function LanguageDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState('English');
+  const { language: selectedLang, setLanguage: setSelectedLang, t } = useLanguage();
   const dropdownRef = useRef(null);
 
   const languages = [
@@ -104,7 +105,7 @@ export default function LanguageDropdown() {
             fontStyle: 'italic',
             textAlign: 'center'
           }}>
-            More languages coming soon...
+            {t('more_languages')}
           </div>
         </div>
       )}

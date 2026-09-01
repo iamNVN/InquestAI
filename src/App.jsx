@@ -3,6 +3,8 @@ import LandingScreen from './components/LandingScreen';
 import VerdictScreen from './components/VerdictScreen';
 import LiveHearingScreen from './components/LiveHearingScreen';
 import ReportPreview from './components/ReportPreview';
+import DashboardScreen from './components/DashboardScreen';
+import { LanguageProvider } from './LanguageContext';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState(() => {
@@ -11,7 +13,7 @@ function App() {
   const [showReport, setShowReport] = useState(false);
 
   return (
-    <>
+    <LanguageProvider>
       {currentScreen === 'LANDING' ? (
         <video
           autoPlay
@@ -39,7 +41,7 @@ function App() {
             zIndex: -1,
             top: 0,
             left: 0,
-            backgroundImage: currentScreen === 'HEARING' ? "url('/background/courtroom.png')" : "url('/background/2.png')",
+            backgroundImage: currentScreen === 'HEARING' ? "url('/background/courtroom.png')" : currentScreen === 'DASHBOARD' ? "url('/background/dashboard.png')" : "url('/background/2.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundColor: '#000'
@@ -48,7 +50,10 @@ function App() {
       )}
       
       {currentScreen === 'LANDING' && (
-        <LandingScreen onForward={() => setCurrentScreen('VERDICT')} />
+        <LandingScreen 
+          onForward={() => setCurrentScreen('VERDICT')} 
+          onDashboardClick={() => setCurrentScreen('DASHBOARD')}
+        />
       )}
       
       {currentScreen === 'VERDICT' && (
@@ -57,6 +62,10 @@ function App() {
           onViewHearing={() => setCurrentScreen('HEARING')}
           onGenerateReport={() => setShowReport(true)}
         />
+      )}
+
+      {currentScreen === 'DASHBOARD' && (
+        <DashboardScreen onBack={() => setCurrentScreen('LANDING')} />
       )}
       
       {currentScreen === 'HEARING' && (
@@ -74,7 +83,7 @@ function App() {
       {showReport && (
         <ReportPreview onClose={() => setShowReport(false)} />
       )}
-    </>
+    </LanguageProvider>
   );
 }
 

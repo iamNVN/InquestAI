@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../LanguageContext';
 
 export default function LiveHearingScreen({ onHearingComplete }) {
+  const { t, tArray } = useLanguage();
   const [elapsed, setElapsed] = useState(0);
   const [prosecutionStrength, setProsecutionStrength] = useState(50);
   const defenseStrength = 100 - Math.round(prosecutionStrength);
@@ -13,7 +15,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
   };
 
   const [transcript, setTranscript] = useState([
-    { time: '00:00:00', speaker: 'Judge', text: 'Court is now in session. The Prosecution may present their case.' }
+    { time: '00:00:00', speaker: 'Judge', text: t('court_session') }
   ]);
 
   useEffect(() => {
@@ -27,9 +29,11 @@ export default function LiveHearingScreen({ onHearingComplete }) {
       if (Math.random() > 0.6) {
         const isPros = Math.random() > 0.5;
         const speaker = isPros ? 'Prosecution' : 'Defense';
+        const prosArgs = tArray('pros_args');
+        const defArgs = tArray('def_args');
         const text = isPros
-          ? ["Domain is a typosquat of PayPal...", "Redirects to suspicious IP...", "Urgency keywords detected..."][Math.floor(Math.random() * 3)]
-          : ["SSL certificate is valid...", "Sender has good reputation...", "No malicious attachments found..."][Math.floor(Math.random() * 3)];
+          ? (prosArgs.length ? prosArgs[Math.floor(Math.random() * prosArgs.length)] : "...")
+          : (defArgs.length ? defArgs[Math.floor(Math.random() * defArgs.length)] : "...");
 
         setTranscript(prev => [...prev, { time: formatTime(currentElapsed), speaker, text }]);
       }
@@ -68,8 +72,8 @@ export default function LiveHearingScreen({ onHearingComplete }) {
             }}>
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ff3333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>THE PROSECUTION</h4>
-            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>Arguing why this email might be  <span style={{ color: '#ff3333', fontWeight: 600 }}>PHISHING</span></p>
+            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>{t('prosecution')}</h4>
+            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>{t('arguing_phishing')} <span style={{ color: '#ff3333', fontWeight: 600 }}>{t('phishing')}</span></p>
           </div>
 
           <div style={{
@@ -81,7 +85,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontFamily: "'Inter', sans-serif", fontSize: '0.75rem', color: '#ccc', letterSpacing: '1px' }}>
-              <span>STRENGTH OF CASE</span>
+              <span>{t('strength')}</span>
               <span style={{ color: '#fff', fontWeight: 600 }}>{Math.round(prosecutionStrength)}%</span>
             </div>
             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -108,8 +112,8 @@ export default function LiveHearingScreen({ onHearingComplete }) {
             }}>
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3296ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>THE DEFENSE</h4>
-            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>Arguing why this email might be <span style={{ color: '#3296ff', fontWeight: 600 }}>LEGITIMATE</span></p>
+            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>{t('defense')}</h4>
+            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>{t('arguing_legitimate')} <span style={{ color: '#3296ff', fontWeight: 600 }}>{t('legitimate')}</span></p>
           </div>
 
           <div style={{
@@ -121,7 +125,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontFamily: "'Inter', sans-serif", fontSize: '0.75rem', color: '#ccc', letterSpacing: '1px' }}>
-              <span>STRENGTH OF CASE</span>
+              <span>{t('strength')}</span>
               <span style={{ color: '#fff', fontWeight: 600 }}>{Math.round(defenseStrength)}%</span>
             </div>
             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -149,7 +153,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
           justifyContent: 'center'
         }}>
           <h5 style={{ fontFamily: "'Inter', sans-serif", color: '#d4b872', margin: '0 0 1.5rem 0', letterSpacing: '1px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-            LIVE ARGUMENT
+            {t('live_argument')}
           </h5>
           <div style={{ fontSize: '1.2rem', fontFamily: "'Inter', sans-serif", color: '#fff', lineHeight: '1.6' }}>
             {transcript.length > 0 && (
@@ -177,7 +181,7 @@ export default function LiveHearingScreen({ onHearingComplete }) {
           height: '200px' // fixed height for scrolling
         }}>
           <h5 style={{ fontFamily: "'Inter', sans-serif", color: '#fff', margin: '0 0 1rem 0', letterSpacing: '1px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-            HEARING TRANSCRIPT
+            {t('hearing_transcript')}
           </h5>
           <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '1rem' }} className="custom-scrollbar">
             {transcript.map((item, i) => (
