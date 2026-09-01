@@ -1,26 +1,40 @@
-import { useState, useEffect, useRef } from 'react';
-
-const SCRIPT = [
-  { time: 2, speaker: 'Judge', text: 'Court is now in session. The Prosecution may present their case.' },
-  { time: 5, speaker: 'Prosecution', text: 'Your Honor, the domain is a typosquat of PayPal. It uses a "1" instead of "l".' },
-  { time: 10, speaker: 'Defense', text: 'Lookalike domains alone are not enough. The email could be from a legitimate security partner using a similar domain.' },
-  { time: 15, speaker: 'Prosecution', text: 'However, the SSL certificate is invalid and redirects to a suspicious IP address.' },
-  { time: 20, speaker: 'Defense', text: 'The sender hostname might be misconfigured. We lack definitive proof of intent.' },
-  { time: 25, speaker: 'Prosecution', text: 'The language manipulates urgency, asking for immediate credential input. It is clearly deceptive.' },
-  { time: 28, speaker: 'Judge', text: 'I have heard enough. The evidence heavily weighs in favor of the Prosecution.' },
-];
+import React, { useState, useEffect } from 'react';
 
 export default function LiveHearingScreen({ onHearingComplete }) {
   const [elapsed, setElapsed] = useState(0);
-  const [prosecutorScore, setProsecutorScore] = useState(10);
-  const [defenseScore, setDefenseScore] = useState(10);
-  const [transcript, setTranscript] = useState([]);
-  const transcriptEndRef = useRef(null);
+  const [prosecutionStrength, setProsecutionStrength] = useState(50);
+  const defenseStrength = 100 - Math.round(prosecutionStrength);
+
+  const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
+
+  const [transcript, setTranscript] = useState([
+    { time: '00:00:00', speaker: 'Judge', text: 'Court is now in session. The Prosecution may present their case.' }
+  ]);
 
   useEffect(() => {
+    let currentElapsed = 0;
     const timer = setInterval(() => {
-      setElapsed(prev => prev < 30 ? prev + 1 : 30);
+      currentElapsed++;
+      setElapsed(currentElapsed);
+
+      setProsecutionStrength(prev => Math.min(95, Math.max(5, prev + (Math.random() * 10 - 5))));
+
+      if (Math.random() > 0.6) {
+        const isPros = Math.random() > 0.5;
+        const speaker = isPros ? 'Prosecution' : 'Defense';
+        const text = isPros
+          ? ["Domain is a typosquat of PayPal...", "Redirects to suspicious IP...", "Urgency keywords detected..."][Math.floor(Math.random() * 3)]
+          : ["SSL certificate is valid...", "Sender has good reputation...", "No malicious attachments found..."][Math.floor(Math.random() * 3)];
+
+        setTranscript(prev => [...prev, { time: formatTime(currentElapsed), speaker, text }]);
+      }
     }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
@@ -30,115 +44,154 @@ export default function LiveHearingScreen({ onHearingComplete }) {
     }
   }, [elapsed, onHearingComplete]);
 
-  useEffect(() => {
-    const newLines = SCRIPT.filter(s => s.time === elapsed);
-    if (newLines.length > 0) {
-      setTranscript(prev => [...prev, ...newLines]);
-      
-      // Update scores dynamically based on the speaker
-      newLines.forEach(line => {
-        if (line.speaker === 'Prosecution') {
-           setProsecutorScore(prev => Math.min(prev + 25, 87));
-           setDefenseScore(prev => Math.max(prev - 5, 22));
-        } else if (line.speaker === 'Defense') {
-           setDefenseScore(prev => Math.min(prev + 15, 45));
-           setProsecutorScore(prev => Math.max(prev - 2, 76));
-        }
-      });
-    }
-  }, [elapsed]);
-
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [transcript]);
-
   return (
-    <div className="app-container">
-      <div className="premium-panel" style={{maxWidth: '1200px'}}>
-        <div className="flex-between mb-2">
-          <button className="btn-secondary" onClick={onHearingComplete} style={{fontSize: '0.9rem', padding: '0.5rem 1rem'}}>← Back to Verdict</button>
-          <h2 className="gold-text m-0">⚖ THE HEARING ⚖</h2>
-          <span style={{color: 'var(--red-crimson)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-            <span style={{width: '10px', height: '10px', borderRadius: '50%', background: 'var(--red-crimson)', display: 'inline-block', boxShadow: '0 0 8px var(--red-crimson)'}}></span>
-            LIVE HEARING
-          </span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '2rem 4rem', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
 
-        <div className="flex-center mb-2" style={{marginTop: '2rem'}}>
-          <div className="text-center" style={{background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '8px', border: '1px solid var(--panel-border)'}}>
-            <h4 className="gold-text mb-0">THE JUDGE</h4>
-            <p className="text-muted" style={{fontSize: '0.9rem', marginTop: '0.2rem'}}>Veritas AI</p>
-          </div>
-        </div>
+      {/* Main Content Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, padding: '0 4rem', marginTop: '8vh' }}>
 
-        <div className="hearing-layout" style={{marginBottom: '2rem'}}>
-          <div className="side-panel prosecutor-panel">
-            <div className="text-center mb-2">
-              <div className="logo-icon mx-auto" style={{borderColor: 'var(--blue-prosecutor)', color: 'var(--blue-prosecutor)'}}>👨‍💼</div>
-              <h3 style={{color: 'var(--blue-prosecutor)'}}>THE PROSECUTION</h3>
-              <p className="text-muted mb-1" style={{fontSize: '0.9rem'}}>Arguing why this email is <span style={{color: 'var(--red-crimson)', fontWeight: 'bold'}}>PHISHING</span></p>
+        {/* Prosecution Side */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '320px' }}>
+          <div style={{
+            background: 'rgba(10,5,5,0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 50, 50, 0.3)',
+            borderRadius: '16px',
+            padding: '2.5rem 2rem',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,0,0,0.05)'
+          }}>
+            <div style={{
+              width: '70px', height: '70px', borderRadius: '50%', border: '2px solid rgba(255,50,50,0.6)',
+              margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(255,0,0,0.3)', background: 'radial-gradient(circle, rgba(255,0,0,0.2) 0%, rgba(0,0,0,0) 100%)'
+            }}>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ff3333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-            
-            <div className="mt-2" style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px'}}>
-              <div className="flex-between text-muted mb-1" style={{fontSize: '0.85rem'}}>
-                <span>STRENGTH OF CASE</span>
-                <span style={{color: '#fff', fontSize: '1.2rem'}}>{prosecutorScore}%</span>
-              </div>
-              <div className="progress-bar-container" style={{height: '12px'}}>
-                <div className="progress-bar prosecutor-bar" style={{width: `${prosecutorScore}%`}}></div>
-              </div>
-            </div>
+            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>THE PROSECUTION</h4>
+            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>Arguing why this email might be  <span style={{ color: '#ff3333', fontWeight: 600 }}>PHISHING</span></p>
           </div>
 
-          <div className="side-panel defense-panel">
-             <div className="text-center mb-2">
-              <div className="logo-icon mx-auto" style={{borderColor: 'var(--blue-defense)', color: 'var(--blue-defense)'}}>👩‍💼</div>
-              <h3 style={{color: 'var(--blue-defense)'}}>THE DEFENSE</h3>
-              <p className="text-muted mb-1" style={{fontSize: '0.9rem'}}>Arguing why this email might be <span style={{color: '#fff', fontWeight: 'bold'}}>LEGITIMATE</span></p>
+          <div style={{
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontFamily: "'Inter', sans-serif", fontSize: '0.75rem', color: '#ccc', letterSpacing: '1px' }}>
+              <span>STRENGTH OF CASE</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{Math.round(prosecutionStrength)}%</span>
             </div>
-
-            <div className="mt-2" style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px'}}>
-              <div className="flex-between text-muted mb-1" style={{fontSize: '0.85rem'}}>
-                <span>STRENGTH OF CASE</span>
-                <span style={{color: '#fff', fontSize: '1.2rem'}}>{defenseScore}%</span>
-              </div>
-              <div className="progress-bar-container" style={{height: '12px'}}>
-                <div className="progress-bar defense-bar" style={{width: `${defenseScore}%`}}></div>
-              </div>
+            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${prosecutionStrength}%`, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)', transition: 'width 0.5s ease-out' }}></div>
             </div>
           </div>
         </div>
 
-        <div style={{display: 'flex', gap: '2rem'}}>
-           <div style={{flex: 2}}>
-              <h4 className="gold-text mb-1">LIVE ARGUMENT</h4>
-              <div style={{background: 'rgba(0,0,0,0.6)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--glass-border)', minHeight: '120px', display: 'flex', alignItems: 'center'}}>
-                 {transcript.length > 0 ? (
-                    <p style={{fontSize: '1.1rem', lineHeight: '1.6'}}>
-                      <span className={`speaker-${transcript[transcript.length-1].speaker.toLowerCase()}`} style={{marginRight: '0.5rem'}}>{transcript[transcript.length-1].speaker.toUpperCase()}:</span>
-                      {transcript[transcript.length-1].text}
-                    </p>
-                 ) : (
-                    <p className="text-muted" style={{fontStyle: 'italic'}}>Waiting for hearing to commence...</p>
-                 )}
-              </div>
-           </div>
+        {/* Defense Side */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '320px' }}>
+          <div style={{
+            background: 'rgba(5,10,15,0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(50, 150, 255, 0.3)',
+            borderRadius: '16px',
+            padding: '2.5rem 2rem',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(50,150,255,0.05)'
+          }}>
+            <div style={{
+              width: '70px', height: '70px', borderRadius: '50%', border: '2px solid rgba(50,150,255,0.6)',
+              margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(50,150,255,0.3)', background: 'radial-gradient(circle, rgba(50,150,255,0.2) 0%, rgba(0,0,0,0) 100%)'
+            }}>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3296ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <h4 style={{ fontFamily: "'Cinzel', serif", color: '#d4b872', fontSize: '1.1rem', margin: '0 0 0.75rem 0', letterSpacing: '1px' }}>THE DEFENSE</h4>
+            <p style={{ fontFamily: "'Inter', sans-serif", color: '#aaa', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>Arguing why this email might be <span style={{ color: '#3296ff', fontWeight: 600 }}>LEGITIMATE</span></p>
+          </div>
 
-           <div style={{flex: 1}}>
-             <h4 className="text-muted mb-1" style={{fontSize: '0.9rem'}}>HEARING TRANSCRIPT</h4>
-             <div className="transcript-box" style={{height: '120px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.8)'}}>
-                {transcript.map((t, i) => (
-                  <div key={i} className="transcript-line" style={{fontSize: '0.8rem'}}>
-                    <span style={{color: '#555', marginRight: '8px'}}>10:24:{t.time.toString().padStart(2, '0')}</span>
-                    <span className={`speaker-${t.speaker.toLowerCase()}`} style={{marginRight: '5px'}}>{t.speaker}</span>
-                    <span style={{color: '#ccc'}}>{t.text.substring(0, 30)}...</span>
-                  </div>
-                ))}
-                <div ref={transcriptEndRef} />
-             </div>
-           </div>
+          <div style={{
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontFamily: "'Inter', sans-serif", fontSize: '0.75rem', color: '#ccc', letterSpacing: '1px' }}>
+              <span>STRENGTH OF CASE</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{Math.round(defenseStrength)}%</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${defenseStrength}%`, height: '100%', background: '#3296ff', boxShadow: '0 0 10px rgba(50,150,255,0.8)', transition: 'width 0.5s ease-out' }}></div>
+            </div>
+          </div>
         </div>
+
       </div>
+
+      {/* Bottom Panels Row */}
+      <div style={{ display: 'flex', gap: '2rem', width: '100%', padding: '0 4rem', boxSizing: 'border-box' }}>
+
+        {/* Live Argument (Left) */}
+        <div style={{
+          flex: 6,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '12px',
+          padding: '2rem',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center'
+        }}>
+          <h5 style={{ fontFamily: "'Inter', sans-serif", color: '#d4b872', margin: '0 0 1.5rem 0', letterSpacing: '1px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
+            LIVE ARGUMENT
+          </h5>
+          <div style={{ fontSize: '1.2rem', fontFamily: "'Inter', sans-serif", color: '#fff', lineHeight: '1.6' }}>
+            {transcript.length > 0 && (
+              <>
+                <span style={{ color: transcript[transcript.length - 1].speaker === 'Prosecution' ? '#ff3333' : transcript[transcript.length - 1].speaker === 'Defense' ? '#3296ff' : '#d4b872', fontWeight: 600, marginRight: '0.5rem' }}>
+                  {transcript[transcript.length - 1].speaker}:
+                </span>
+                {transcript[transcript.length - 1].text}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Hearing Transcript (Right) */}
+        <div style={{
+          flex: 4,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '200px' // fixed height for scrolling
+        }}>
+          <h5 style={{ fontFamily: "'Inter', sans-serif", color: '#fff', margin: '0 0 1rem 0', letterSpacing: '1px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
+            HEARING TRANSCRIPT
+          </h5>
+          <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '1rem' }} className="custom-scrollbar">
+            {transcript.map((item, i) => (
+              <div key={i} style={{ fontSize: '0.85rem', fontFamily: "'Inter', sans-serif", color: '#aaa', lineHeight: '1.5' }}>
+                <span style={{ color: '#666', marginRight: '0.75rem', fontFamily: "monospace" }}>{item.time}</span>
+                <span style={{ color: item.speaker === 'Prosecution' ? '#ff3333' : item.speaker === 'Defense' ? '#3296ff' : '#d4b872', fontWeight: 600 }}>{item.speaker}</span>
+                <span style={{ color: '#fff' }}> {item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }
