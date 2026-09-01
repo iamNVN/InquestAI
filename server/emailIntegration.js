@@ -6,9 +6,9 @@ import { startInvestigation, subscribe } from './orchestrator/investigate.js';
 
 const imapConfig = {
     imap: {
-        user: 'courtroom@iamnvn.in',
-        password: '***',
-        host: '54.39.160.85',
+        user: process.env.EMAIL_USER,
+        password: process.env.EMAIL_PASSWORD,
+        host: process.env.EMAIL_HOST,
         port: 993,
         tls: true,
         tlsOptions: { rejectUnauthorized: false },
@@ -17,12 +17,12 @@ const imapConfig = {
 };
 
 const smtpTransporter = nodemailer.createTransport({
-    host: '54.39.160.85',
+    host: process.env.EMAIL_HOST,
     port: 465,
     secure: true,
     auth: {
-        user: 'courtroom@iamnvn.in',
-        pass: '***'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
     },
     tls: { rejectUnauthorized: false }
 });
