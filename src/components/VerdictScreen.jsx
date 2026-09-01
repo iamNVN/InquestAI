@@ -214,104 +214,68 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
 
       {/* Buttons */}
       <div style={{ display: 'flex', gap: '1.5rem', width: '100%', maxWidth: '750px', zIndex: 10 }}>
-        {!isFinal ? (
-          <>
-            <button
-              onClick={onViewHearing}
-              style={{
-                flex: 1,
-                background: 'linear-gradient(180deg, rgba(160, 120, 50, 0.5) 0%, rgba(80, 50, 10, 0.8) 100%)',
-                border: '2px solid rgba(212, 184, 114, 0.3)',
-                color: '#fff',
-                padding: '1.1rem',
-                backdropFilter: 'blur(4px)',
-                borderRadius: '8px',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '1.05rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                boxShadow: '0 4px 15px rgba(212, 184, 114, 0.15)',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.2)'}
-              onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 13.5V16.5l-4 4-4-4V13.5"></path><path d="M2 13.5h20"></path><path d="M12 2L12 9"></path><path d="M8 5h8"></path></svg>
-              View Hearing
-            </button>
+        <button
+          onClick={onViewHearing}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(180deg, rgba(160, 120, 50, 0.5) 0%, rgba(80, 50, 10, 0.8) 100%)',
+            border: '2px solid rgba(212, 184, 114, 0.3)',
+            color: '#fff',
+            padding: '1.1rem',
+            backdropFilter: 'blur(4px)',
+            borderRadius: '8px',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '1.05rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            boxShadow: '0 4px 15px rgba(212, 184, 114, 0.15)',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.2)'}
+          onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+        >
+          {isFinal ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 13.5V16.5l-4 4-4-4V13.5"></path><path d="M2 13.5h20"></path><path d="M12 2L12 9"></path><path d="M8 5h8"></path></svg>
+          )}
+          {isFinal ? 'Replay Hearing' : 'View Hearing'}
+        </button>
 
-            <button
-              onClick={onGenerateReport}
-              style={{
-                flex: 1,
-                background: 'linear-gradient(180deg, rgba(60, 80, 110, 0.5) 0%, rgba(20, 30, 45, 0.8) 100%)',
-
-                backdropFilter: 'blur(4px)',
-                border: '2px solid rgba(100, 140, 200, 0.4)',
-                color: '#fff',
-                padding: '1.1rem',
-                borderRadius: '8px',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '1.05rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.2)'}
-              onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a0c0e0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              Generate Report
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => window.location.href = '/'}
-              style={{
-                flex: 1,
-                background: 'linear-gradient(180deg, rgba(80, 80, 80, 0.3) 0%, rgba(30, 30, 30, 0.8) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#fff',
-                padding: '1.1rem',
-                borderRadius: '8px',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '1.05rem',
-                fontWeight: 500,
-                cursor: 'pointer'
-              }}
-            >
-              Investigate Another Email
-            </button>
-
-            <button
-              onClick={onGenerateReport}
-              style={{
-                flex: 1,
-                background: 'linear-gradient(180deg, rgba(60, 80, 110, 0.3) 0%, rgba(20, 30, 45, 0.8) 100%)',
-                border: '1px solid rgba(100, 140, 200, 0.3)',
-                color: '#fff',
-                padding: '1.1rem',
-                borderRadius: '8px',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '1.05rem',
-                fontWeight: 500,
-                cursor: 'pointer'
-              }}
-            >
-              Generate New Report
-            </button>
-          </>
-        )}
+        <button
+          onClick={onGenerateReport}
+          style={{
+            flex: 1,
+            background: 'linear-gradient(180deg, rgba(60, 80, 110, 0.5) 0%, rgba(20, 30, 45, 0.8) 100%)',
+            backdropFilter: 'blur(4px)',
+            border: '2px solid rgba(100, 140, 200, 0.4)',
+            color: '#fff',
+            padding: '1.1rem',
+            borderRadius: '8px',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '1.05rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.2)'}
+          onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a0c0e0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Generate Report
+        </button>
       </div>
     </div>
   );

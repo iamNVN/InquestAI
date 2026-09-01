@@ -66,6 +66,7 @@ function App() {
       {currentScreen === 'FINAL' && (
         <VerdictScreen 
           isFinal={true}
+          onViewHearing={() => setCurrentScreen('HEARING')}
           onGenerateReport={() => setShowReport(true)}
         />
       )}
