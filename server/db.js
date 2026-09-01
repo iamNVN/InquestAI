@@ -12,17 +12,29 @@ async function initializeDatabase() {
     host: process.env.DB_HOST || 'localhost', 
     port: parseInt(process.env.DB_PORT || '3308'), 
     user: process.env.DB_USER || 'root', 
-    password: process.env.DB_PASSWORD || 'admin' 
+    password: process.env.DB_PASSWORD || 'admin',
+    ssl: { rejectUnauthorized: false }
   });
-  await connection.query('CREATE DATABASE IF NOT EXISTS `inquest`;');
+  const dbName = process.env.DB_NAME || 'inquest';
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+  } catch (e) {
+    console.log('Skipping db creation (hosted environments may restrict this).');
+  }
   await connection.end();
 }
 
-const sequelize = new Sequelize('inquest', process.env.DB_USER || 'root', process.env.DB_PASSWORD || 'admin', {
+const sequelize = new Sequelize(process.env.DB_NAME || 'inquest', process.env.DB_USER || 'root', process.env.DB_PASSWORD || 'admin', {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3308'),
   dialect: 'mysql',
   logging: false,
+  dialectOptions: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  } : {}
 });
 
 const Investigation = sequelize.define('Investigation', {
