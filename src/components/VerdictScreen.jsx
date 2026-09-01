@@ -31,7 +31,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
   const shadowColor = isGuilty ? 'rgba(255, 0, 0, 0.6)' : 'rgba(46, 204, 113, 0.6)';
 
   return (
-    <div style={{
+    <div className="animate-fade-in" style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -75,6 +75,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
       <div style={{
         background: 'rgba(15, 10, 10, 0.45)',
         backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(212, 184, 114, 0.3)',
         borderRadius: '20px',
         padding: '6px',
@@ -106,16 +107,16 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
             borderRadius: '16px'
           }}></div>
 
-          <img 
-            src={iconSrc} 
-            alt="Verdict Icon" 
-            style={{ 
-              width: '110px', 
-              height: '110px', 
-              objectFit: 'contain', 
+          <img
+            src={iconSrc}
+            alt="Verdict Icon"
+            style={{
+              width: '110px',
+              height: '110px',
+              objectFit: 'contain',
               margin: '0 auto 0.5rem auto',
               display: 'block'
-            }} 
+            }}
           />
 
           <h3 style={{
