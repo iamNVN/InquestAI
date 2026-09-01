@@ -5,7 +5,7 @@ const translations = {
     dashboard: 'Dashboard',
     inquest: 'INQUEST',
     subtitle: 'AI PHISHING INVESTIGATION',
-    tagline: 'Forward. We investigate. You stay safe.',
+    tagline: 'You Forward. We investigate. You stay safe.',
     instruction: 'Forward any suspicious email to our secure address.',
     email_label: 'OUR COURTROOM EMAIL',
     copied: 'Copied!',
@@ -40,13 +40,13 @@ const translations = {
     hearing_transcript: 'HEARING TRANSCRIPT',
     court_session: 'Court is now in session. The Prosecution may present their case.',
     pros_args: [
-      "Domain is a typosquat of PayPal...", 
-      "Redirects to suspicious IP...", 
+      "Domain is a typosquat of PayPal...",
+      "Redirects to suspicious IP...",
       "Urgency keywords detected..."
     ],
     def_args: [
-      "SSL certificate is valid...", 
-      "Sender has good reputation...", 
+      "SSL certificate is valid...",
+      "Sender has good reputation...",
       "No malicious attachments found..."
     ],
     final_judgement: 'FINAL JUDGEMENT',
@@ -148,13 +148,13 @@ const translations = {
     hearing_transcript: 'விசாரணை பதிவு',
     court_session: 'நீதிமன்றம் இப்போது அமர்வில் உள்ளது. தரப்பு வாதம் தங்கள் வழக்கை முன்வைக்கலாம்.',
     pros_args: [
-      "டொமைன் பேபாலின் டைபோஸ்குவாட்...", 
-      "சந்தேகத்திற்குரிய ஐபி-க்கு திருப்புகிறது...", 
+      "டொமைன் பேபாலின் டைபோஸ்குவாட்...",
+      "சந்தேகத்திற்குரிய ஐபி-க்கு திருப்புகிறது...",
       "அவசர வார்த்தைகள் உள்ளன..."
     ],
     def_args: [
-      "SSL சான்றிதழ் செல்லுபடியாகும்...", 
-      "அனுப்புநருக்கு நல்ல நற்பெயர் உள்ளது...", 
+      "SSL சான்றிதழ் செல்லுபடியாகும்...",
+      "அனுப்புநருக்கு நல்ல நற்பெயர் உள்ளது...",
       "தீங்கிழைக்கும் இணைப்புகள் எதுவும் இல்லை..."
     ],
     final_judgement: 'இறுதி தீர்ப்பு',
@@ -256,13 +256,13 @@ const translations = {
     hearing_transcript: 'सुनवाई का ट्रांसक्रिप्ट',
     court_session: 'अदालत अब सत्र में है। अभियोजन पक्ष अपना मामला पेश कर सकता है।',
     pros_args: [
-      "डोमेन PayPal का टाइपोस्क्वाट है...", 
-      "संदिग्ध IP पर रीडायरेक्ट करता है...", 
+      "डोमेन PayPal का टाइपोस्क्वाट है...",
+      "संदिग्ध IP पर रीडायरेक्ट करता है...",
       "तत्काल कीवर्ड पाए गए..."
     ],
     def_args: [
-      "SSL प्रमाणपत्र वैध है...", 
-      "प्रेषक की प्रतिष्ठा अच्छी है...", 
+      "SSL प्रमाणपत्र वैध है...",
+      "प्रेषक की प्रतिष्ठा अच्छी है...",
       "कोई दुर्भावनापूर्ण अनुलग्नक नहीं मिला..."
     ],
     final_judgement: 'अंतिम फैसला',

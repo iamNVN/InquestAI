@@ -6,9 +6,10 @@ import DashboardScreen from './components/DashboardScreen';
 import CourtFlow from './components/CourtFlow';
 import ReportPreview from './components/ReportPreview';
 import { LanguageProvider } from './LanguageContext';
+import Cookies from 'js-cookie';
 
 const ProtectedRoute = ({ children }) => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const isLoggedIn = Cookies.get('isLoggedIn') === 'true';
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
@@ -20,9 +21,9 @@ function AppContent() {
   const path = location.pathname;
 
   // Report Preview has its own dark background style inline
-  const isVideoBg = path === '/' || path === '/login' || path.startsWith('/court');
-  const videoKey = (path === '/' || path === '/login') ? 'landing-vid' : 'verdict-vid';
-  const videoSrc = (path === '/' || path === '/login') ? "/background/1.mp4" : "/background/2.mp4";
+  const isVideoBg = path === '/' || path === '/login';
+  const videoKey = 'landing-vid';
+  const videoSrc = "/background/1.mp4";
 
   return (
     <>

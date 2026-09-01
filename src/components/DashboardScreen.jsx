@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../LanguageContext';
 import LanguageDropdown from './LanguageDropdown';
+import Cookies from 'js-cookie';
 
-export default function DashboardScreen({ onBack, onSignOut }) {
+export default function DashboardScreen() {
   const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const path = location.pathname;
   let activeTab = 'Dashboard';
   if (path === '/mycases') activeTab = 'My Cases';
@@ -16,12 +17,73 @@ export default function DashboardScreen({ onBack, onSignOut }) {
 
   const [openDropdownIdx, setOpenDropdownIdx] = useState(null);
   const [showSupportModal, setShowSupportModal] = useState(null);
+  const [selectedEmailCase, setSelectedEmailCase] = useState(null);
   const [isClosingModal, setIsClosingModal] = useState(false);
+  const [recentCases, setRecentCases] = useState([]);
+  const [isDemoRunning, setIsDemoRunning] = useState(false);
+  const [showNewInvestigation, setShowNewInvestigation] = useState(false);
+  const [customEmail, setCustomEmail] = useState('');
+
+  const userEmail = Cookies.get('userEmail') || 'nivethaa.s@gmail.com';
+  const userName = 'Nivethaa';
+
+  const handleSignOut = () => {
+    Cookies.remove('isLoggedIn');
+    Cookies.remove('userEmail');
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    fetch('/api/cases')
+      .then(res => res.json())
+      .then(data => setRecentCases(data))
+      .catch(console.error);
+  }, []);
+
+  const handleRunDemo = async () => {
+    setIsDemoRunning(true);
+    try {
+      const demoEmail = `From: security@paypa1-login.com\nTo: nvnkumaredu@gmail.com\nSubject: Urgent: Verify Your Account\n\nDear Customer,\n\nWe noticed unusual activity on your account. Please click the link below to verify your identity:\nhttp://paypa1-login.com/verify\n\nFailure to do so will result in account suspension.\n\nThanks,\nThe PayPal Security Team`;
+      const res = await fetch('/api/investigate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_email: demoEmail })
+      });
+      const data = await res.json();
+      if (data.investigation_id) {
+        navigate(`/court/${data.investigation_id}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsDemoRunning(false);
+  };
+
+  const handleCustomInvestigation = async () => {
+    if (!customEmail.trim()) return;
+    setIsDemoRunning(true);
+    try {
+      const res = await fetch('/api/investigate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_email: customEmail })
+      });
+      const data = await res.json();
+      if (data.investigation_id) {
+        navigate(`/court/${data.investigation_id}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsDemoRunning(false);
+  };
 
   const handleCloseModal = () => {
     setIsClosingModal(true);
     setTimeout(() => {
       setShowSupportModal(null);
+      setSelectedEmailCase(null);
+      setShowNewInvestigation(false);
       setIsClosingModal(false);
     }, 200);
   };
@@ -30,15 +92,7 @@ export default function DashboardScreen({ onBack, onSignOut }) {
     { id: 'Dashboard', path: '/dashboard', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> },
     { id: 'My Cases', path: '/mycases', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
     { id: 'Reports', path: '/myreports', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
-    { id: 'Support', path: '/support', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> }
-  ];
-
-  const recentCases = [
-    { id: 'CASE-24-0519', date: 'May 19, 2025', subject: 'Urgent: Verify Your Account', sender: 'security@update-alert.com', status: 'Completed', verdict: 'PHISHING', confidence: 92, iconColor: '#ff3333' },
-    { id: 'CASE-24-0518', date: 'May 18, 2025', subject: 'Invoice Attached', sender: 'billing@company.com', status: 'Completed', verdict: 'LEGITIMATE', confidence: 78, iconColor: '#3296ff' },
-    { id: 'CASE-24-0517', date: 'May 17, 2025', subject: 'Update Your Password', sender: 'admin@secure-login.net', status: 'Completed', verdict: 'PHISHING', confidence: 96, iconColor: '#ff3333' },
-    { id: 'CASE-24-0516', date: 'May 16, 2025', subject: 'Meeting Schedule', sender: 'hr@company.com', status: 'Completed', verdict: 'LEGITIMATE', confidence: 65, iconColor: '#d4b872' },
-    { id: 'CASE-24-0515', date: 'May 15, 2025', subject: 'Your Payment Failed', sender: 'billing@secure-pay.net', status: 'In Progress', verdict: null, confidence: null, iconColor: '#ff3333' },
+    { id: 'Integrations', path: '#', onClick: () => setShowSupportModal('integrations'), icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }
   ];
 
   const renderCasesTable = (casesList, title, showViewAll) => (
@@ -58,145 +112,182 @@ export default function DashboardScreen({ onBack, onSignOut }) {
         {showViewAll && (
           <button style={{
             background: 'transparent',
-            border: '1px solid rgba(212,184,114,0.3)',
+            border: 'none',
             color: '#d4b872',
-            padding: '0.35rem 0.6rem',
-            borderRadius: '6px',
+            fontSize: '0.85rem',
             cursor: 'pointer',
-            fontSize: '0.7rem',
+            padding: '0.5rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            transition: 'all 0.2s'
-          }} onClick={() => navigate('/mycases')} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-            {t('view_all_cases')}
+            gap: '0.25rem',
+            fontFamily: "'Inter', sans-serif"
+          }} onClick={() => setActiveTab('My Cases')}>
+            {t('view_all')}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         )}
       </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {casesList.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888', gap: '1rem', padding: '2rem' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212, 184, 114, 0.4)" strokeWidth="1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>No cases found. Run a demo to get started!</p>
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ color: '#aaa', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(212, 184, 114, 0.05)' }}>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}>Case ID</th>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}>Details</th>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}>Status</th>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}>Verdict</th>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}>Confidence</th>
+                <th style={{ padding: '1rem 1.25rem', fontWeight: 500 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {casesList.map((c, i) => (
+                <tr key={c.id} style={{
+                  borderBottom: i === casesList.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  background: 'transparent'
+                }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  onClick={(e) => {
+                    if (e.target.closest('button') || e.target.closest('.dropdown-menu')) return;
+                    navigate(`/court/${c.id}`);
+                  }}>
+                  <td style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.iconColor} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      </div>
+                      <div>
+                        <div style={{ color: '#e0e0e0', fontWeight: 500 }}>{c.id}</div>
+                        <div style={{ color: '#888', fontSize: '0.75rem', marginTop: '0.2rem' }}>{c.date ? new Date(c.date).toLocaleDateString() : 'N/A'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '1.25rem', color: '#ccc' }}>
+                    <div>{c.subject}</div>
+                    <div style={{ color: '#888', fontSize: '0.75rem', marginTop: '0.2rem' }}>{c.sender}</div>
+                  </td>
+                  <td style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: c.status === 'Completed' ? 'rgba(46, 204, 113, 0.1)' : 'rgba(212, 184, 114, 0.1)', padding: '0.4rem 0.75rem', borderRadius: '4px', color: c.status === 'Completed' ? '#2ecc71' : '#d4b872', fontSize: '0.8rem', fontWeight: 500 }}>
+                      {c.status === 'In Progress' && <div className="pulse-loader" style={{ width: '10px', height: '10px', border: '2px solid rgba(212,184,114,0.3)', borderTopColor: '#d4b872', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>}
+                      {c.status}
+                    </div>
+                  </td>
+                  <td style={{ padding: '1.25rem' }}>
+                    {c.verdict ? (
+                      <span style={{ color: c.verdict === 'PHISHING' ? '#ff3333' : '#3296ff', fontWeight: 600 }}>{c.verdict}</span>
+                    ) : (
+                      <span style={{ color: '#888' }}>Pending...</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1.25rem' }}>
+                    {c.confidence ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${c.confidence}%`, background: c.iconColor, borderRadius: '3px' }}></div>
+                        </div>
+                        <span style={{ color: '#ccc', fontSize: '0.8rem', width: '35px', textAlign: 'right' }}>{c.confidence}%</span>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#888' }}>-</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1.25rem', textAlign: 'right', position: 'relative' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenDropdownIdx(openDropdownIdx === c.id ? null : c.id);
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '0.5rem' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </button>
+                    {openDropdownIdx === c.id && (
+                      <div className="dropdown-menu" style={{
+                        position: 'absolute', right: '3rem', top: '2rem',
+                        background: 'rgba(20, 15, 15, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(212, 184, 114, 0.2)',
+                        borderRadius: '8px',
+                        padding: '0.5rem',
+                        display: 'flex', flexDirection: 'column', gap: '0.25rem',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.5)', zIndex: 50,
+                        minWidth: '150px'
+                      }}>
+                        <button onClick={() => { setOpenDropdownIdx(null); setSelectedEmailCase(c); }} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0.6rem 1rem', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                          View Email
+                        </button>
+                        <button onClick={() => navigate(`/court/${c.id}`)} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0.6rem 1rem', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                          View Hearing
+                        </button>
+                        <button onClick={() => navigate(`/report/${c.id}`)} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0.6rem 1rem', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                          View Report
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
 
-      <div style={{ padding: '0.75rem 1.25rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '45px 140px 2fr 120px 150px 120px 40px', padding: '0.25rem 0.75rem', color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-          <div></div>
-          <div>{t('case_id')}</div>
-          <div>{t('subject_sender')}</div>
-          <div>{t('verdict_table')}</div>
-          <div>{t('confidence_table')}</div>
-          <div>{t('last_updated')}</div>
-          <div></div>
+  const renderReportsList = () => {
+    if (recentCases.length === 0) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888', gap: '1rem', padding: '2rem' }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212, 184, 114, 0.4)" strokeWidth="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <p style={{ margin: 0, fontFamily: "'Inter', sans-serif" }}>No reports generated yet.</p>
         </div>
-
-        {casesList.map((caseItem, idx) => (
+      );
+    }
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+        {recentCases.map((caseItem, idx) => (
           <div key={idx} style={{
-            display: 'grid',
-            gridTemplateColumns: '45px 140px 2fr 120px 150px 120px 40px',
-            alignItems: 'center',
-            padding: '0.6rem 0.75rem',
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.03)',
-            borderRadius: '8px',
-            transition: 'all 0.2s'
-          }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.3)'}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '6px', border: `1px solid ${caseItem.iconColor}40`, background: `${caseItem.iconColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {caseItem.verdict === 'PHISHING' || caseItem.iconColor === '#ff3333' ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={caseItem.iconColor} strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path></svg>
-              ) : caseItem.verdict === 'LEGITIMATE' ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={caseItem.iconColor} strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={caseItem.iconColor} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-              )}
+            background: 'rgba(15, 10, 10, 0.75)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(212,184,114,0.2)',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ color: '#d4b872', fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.2rem' }}>{caseItem.id} {t('final_report')}</div>
+                <div style={{ color: '#aaa', fontSize: '0.75rem' }}>{t('generated')} {caseItem.date ? new Date(caseItem.date).toLocaleDateString() : 'N/A'}</div>
+              </div>
+              <div style={{
+                background: caseItem.verdict === 'PHISHING' ? 'rgba(255,51,51,0.1)' : caseItem.verdict === 'LEGITIMATE' ? 'rgba(50,150,255,0.1)' : 'rgba(255,255,255,0.05)',
+                color: caseItem.verdict === 'PHISHING' ? '#ff3333' : caseItem.verdict === 'LEGITIMATE' ? '#3296ff' : '#aaa',
+                border: `1px solid ${caseItem.verdict === 'PHISHING' ? 'rgba(255,51,51,0.3)' : caseItem.verdict === 'LEGITIMATE' ? 'rgba(50,150,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600
+              }}>{caseItem.verdict || t('pending')}</div>
             </div>
-            <div>
-              <div style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '0.15rem' }}>{caseItem.id}</div>
-              <div style={{ color: '#666', fontSize: '0.7rem' }}>{caseItem.date}</div>
-            </div>
-            <div style={{ paddingRight: '1rem' }}>
-              <div style={{ color: '#fff', fontSize: '0.8rem', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{caseItem.subject}</div>
-              <div style={{ color: '#888', fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{caseItem.sender}</div>
-            </div>
-            <div style={{ color: caseItem.verdict === 'PHISHING' ? '#ff3333' : caseItem.verdict === 'LEGITIMATE' ? '#3296ff' : '#666', fontSize: '0.7rem', fontWeight: 600 }}>
-              {caseItem.verdict || '---'}
-            </div>
-            <div>
-              {caseItem.confidence ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ color: '#ccc', fontSize: '0.75rem' }}>{caseItem.confidence}%</span>
-                  <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden', maxWidth: '60px' }}>
-                    <div style={{ width: `${caseItem.confidence}%`, height: '100%', background: caseItem.verdict === 'PHISHING' ? '#ff3333' : '#3296ff' }}></div>
-                  </div>
-                </div>
-              ) : (
-                <span style={{ color: '#666', fontSize: '0.75rem' }}>---</span>
-              )}
-            </div>
-            <div>
-              <div style={{ color: '#aaa', fontSize: '0.7rem', marginBottom: '0.1rem' }}>{caseItem.date}</div>
-              <div style={{ color: '#666', fontSize: '0.65rem' }}>{idx === 0 ? '10:30 AM' : idx === 1 ? '04:15 PM' : idx === 2 ? '09:45 AM' : idx === 3 ? '02:20 PM' : '11:05 AM'}</div>
-            </div>
-            <div style={{ position: 'relative' }}>
-              <button onClick={() => setOpenDropdownIdx(openDropdownIdx === idx ? null : idx)} style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+              <button onClick={() => navigate(`/report/${caseItem.id}`)} style={{ flex: 1, padding: '0.75rem', background: 'rgba(212,184,114,0.15)', border: '1px solid rgba(212,184,114,0.3)', color: '#d4b872', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.25)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.15)'}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                View Official Record
               </button>
-              {openDropdownIdx === idx && (
-                <div style={{ position: 'absolute', right: '0', top: '20px', background: 'rgba(20,15,10,0.95)', border: '1px solid rgba(212,184,114,0.3)', borderRadius: '8px', zIndex: 50, boxShadow: '0 5px 15px rgba(0,0,0,0.5)', minWidth: '130px', padding: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <button onClick={() => { setOpenDropdownIdx(null); navigate(`/court/${caseItem.id}`); }} style={{ background: 'transparent', border: 'none', color: '#ddd', padding: '0.4rem 0.6rem', textAlign: 'left', cursor: 'pointer', fontSize: '0.75rem', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>{t('view_hearing')}</button>
-                  <button onClick={() => { setOpenDropdownIdx(null); navigate(`/report/${caseItem.id}`); }} style={{ background: 'transparent', border: 'none', color: '#ddd', padding: '0.4rem 0.6rem', textAlign: 'left', cursor: 'pointer', fontSize: '0.75rem', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>{t('view_report')}</button>
-                </div>
-              )}
             </div>
           </div>
         ))}
       </div>
-      <div style={{ padding: '0.75rem', display: 'flex', justifyContent: 'center', gap: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <button style={{ width: '26px', height: '26px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: '#666', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&lt;</button>
-        <button style={{ width: '26px', height: '26px', background: 'rgba(212,184,114,0.15)', border: '1px solid rgba(212,184,114,0.3)', color: '#d4b872', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>1</button>
-        <button style={{ width: '26px', height: '26px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: '#888', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>2</button>
-        <button style={{ width: '26px', height: '26px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: '#666', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&gt;</button>
-      </div>
-    </div>
-  );
-
-  const renderReportsList = () => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
-      {recentCases.map((caseItem, idx) => (
-        <div key={idx} style={{
-          background: 'rgba(15, 10, 10, 0.75)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(212,184,114,0.2)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ color: '#d4b872', fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.2rem' }}>{caseItem.id} {t('final_report')}</div>
-              <div style={{ color: '#aaa', fontSize: '0.75rem' }}>{t('generated')} {caseItem.date}</div>
-            </div>
-            <div style={{
-              background: caseItem.verdict === 'PHISHING' ? 'rgba(255,51,51,0.1)' : caseItem.verdict === 'LEGITIMATE' ? 'rgba(50,150,255,0.1)' : 'rgba(255,255,255,0.05)',
-              color: caseItem.verdict === 'PHISHING' ? '#ff3333' : caseItem.verdict === 'LEGITIMATE' ? '#3296ff' : '#aaa',
-              border: `1px solid ${caseItem.verdict === 'PHISHING' ? 'rgba(255,51,51,0.3)' : caseItem.verdict === 'LEGITIMATE' ? 'rgba(50,150,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
-              padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600
-            }}>{caseItem.verdict || t('pending')}</div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
-            <button onClick={() => navigate(`/report/${caseItem.id}`)} style={{ flex: 1, padding: '0.6rem', background: 'rgba(212,184,114,0.15)', border: '1px solid rgba(212,184,114,0.3)', color: '#d4b872', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.25)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.15)'}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              {t('preview')}
-            </button>
-            <button style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#ddd', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              {t('download_pdf')}
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+    );
+  };
 
   const renderSupportForm = () => (
     <div style={{
@@ -272,20 +363,24 @@ export default function DashboardScreen({ onBack, onSignOut }) {
             from { opacity: 1; transform: translateY(0) scale(1); }
             to { opacity: 0; transform: translateY(20px) scale(0.95); }
           }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
         `}
       </style>
       <div className="animate-fade-in" style={{
         display: 'flex',
         height: '100vh',
         width: '100vw',
-        background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0,0,0,0.5) 100%)', // Lighter top, darker bottom
+        background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0,0,0,0.5) 100%)',
         backdropFilter: 'blur(3px)',
         position: 'fixed',
         top: 0,
         left: 0,
         zIndex: 100,
         fontFamily: "'Inter', sans-serif",
-        overflow: 'hidden' // strictly 100vh
+        overflow: 'hidden'
       }}>
         {/* LEFT SIDEBAR */}
         <div style={{
@@ -298,7 +393,7 @@ export default function DashboardScreen({ onBack, onSignOut }) {
           boxShadow: '10px 0 30px rgba(0,0,0,0.8)'
         }}>
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', cursor: 'pointer', paddingLeft: '0.5rem' }} onClick={onBack}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', cursor: 'pointer', paddingLeft: '0.5rem' }}>
             <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0px 0px 5px rgba(212, 184, 114, 0.3))' }}>
               <path d="M50 5 L85 20 V50 C85 75 50 95 50 95 C50 95 15 75 15 50 V20 L50 5 Z" stroke="#d4b872" strokeWidth="3" fill="transparent" />
               <path d="M50 10 L80 23 V50 C80 71 50 88 50 88 C50 88 20 71 20 50 V23 L50 10 Z" stroke="#d4b872" strokeWidth="1" fill="transparent" />
@@ -315,54 +410,88 @@ export default function DashboardScreen({ onBack, onSignOut }) {
 
           {/* Navigation */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            {navItems.map(navItem => (
-              <Link
-                key={navItem.id}
-                to={navItem.path}
-                style={{
+            {navItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <div key={item.id} onClick={() => {
+                  if (item.onClick) item.onClick();
+                  else navigate(item.path);
+                }} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '1rem',
-                  padding: '0.8rem 1rem',
-                  background: activeTab === navItem.id ? 'linear-gradient(90deg, rgba(212,184,114,0.15) 0%, rgba(212,184,114,0) 100%)' : 'transparent',
-                  borderLeft: activeTab === navItem.id ? '3px solid #d4b872' : '3px solid transparent',
-                  color: activeTab === navItem.id ? '#d4b872' : '#999',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '8px',
+                  color: isActive ? '#d4b872' : '#888',
+                  background: isActive ? 'rgba(212, 184, 114, 0.1)' : 'transparent',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  fontFamily: "'Inter', sans-serif",
                   fontSize: '0.9rem',
-                  textDecoration: 'none'
+                  fontWeight: isActive ? 600 : 400,
+                  transition: 'all 0.2s',
+                  borderLeft: isActive ? '3px solid #d4b872' : '3px solid transparent'
                 }}
-                onMouseOver={(e) => { if (activeTab !== navItem.id) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#ddd'; } }}
-                onMouseOut={(e) => { if (activeTab !== navItem.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#999'; } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span style={{ fontSize: '1rem', color: '#d4b872' }}>{navItem.icon}</span>
-                  <span style={{ fontWeight: 500 }}>{t(navItem.id.toLowerCase().replace(' ', '_'))}</span>
+                  onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                  onMouseOut={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <div style={{ color: isActive ? '#d4b872' : '#666' }}>{item.icon}</div>
+                  {item.id}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </nav>
+          <button onClick={() => setShowNewInvestigation(true)} style={{
+            background: 'linear-gradient(135deg, #d4b872 0%, #b39b5b 100%)',
+            border: 'none',
+            color: '#0f0a0a',
+            padding: '0.75rem 1.5rem',
+            marginBottom: '0.5rem',
+            borderRadius: '8px',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            display: 'flex', gap: '0.5rem', alignItems: 'center',
+            boxShadow: '0 4px 15px rgba(199,44,44,0.3)'
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Case
+          </button>
+          <div style={{ padding: '0 0 1rem 0', marginBottom: '0.5rem' }}>
+            <button onClick={handleRunDemo} disabled={isDemoRunning} style={{
+              background: 'linear-gradient(135deg, #d4b872 0%, #b39b5b 100%)',
+              border: 'none',
+              color: '#0f0a0a',
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              fontFamily: "'Inter', sans-serif",
+              cursor: isDemoRunning ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              justifyContent: 'center',
+              boxShadow: '0 4px 15px rgba(212,184,114,0.3)',
+              opacity: isDemoRunning ? 0.7 : 1
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              {isDemoRunning ? 'Running Demo...' : 'Add Demo Case'}
+            </button>
+          </div>
 
           {/* User Profile */}
           <div style={{ marginTop: 'auto' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '1rem 0.75rem',
-              background: 'rgba(0,0,0,0.4)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: '12px',
-              marginBottom: '1rem',
-              cursor: 'pointer'
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(212, 184, 114, 0.2)', border: '1px solid rgba(212, 184, 114, 0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4b872', fontWeight: 600, fontSize: '0.85rem'
-              }}>N</div>
+              }}>{userName.charAt(0)}</div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <p style={{ margin: 0, color: '#fff', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Nivethaa S.</p>
-                <p style={{ margin: 0, color: '#666', fontSize: '0.65rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>nivethaa.s@gmail.com</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{userName}</p>
+                <p style={{ margin: 0, color: '#666', fontSize: '0.65rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{userEmail}</p>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" style={{ flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
@@ -382,7 +511,7 @@ export default function DashboardScreen({ onBack, onSignOut }) {
               transition: 'all 0.2s',
               width: '100%',
               justifyContent: 'center'
-            }} onClick={onSignOut || onBack} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+            }} onClick={handleSignOut} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
               {t('sign_out')}
             </button>
@@ -393,8 +522,9 @@ export default function DashboardScreen({ onBack, onSignOut }) {
         <div key={activeTab} className="animate-fade-in" style={{ flex: 1, padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflow: 'hidden', position: 'relative' }}>
 
           {/* Top Controls */}
-          <div style={{ position: 'absolute', top: '2rem', right: '2.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button style={{
+          <div style={{ position: 'absolute', top: '2rem', right: '2.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center', zIndex: 10 }}>
+
+            <button onClick={() => setShowSupportModal('how-it-works')} style={{
               background: 'rgba(0,0,0,0.4)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.12)',
@@ -413,18 +543,20 @@ export default function DashboardScreen({ onBack, onSignOut }) {
 
           {activeTab === 'Dashboard' && (
             <>
-              <div>
-                <h1 style={{ color: '#d4b872', margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 400, fontFamily: "'Cinzel', serif" }}>
-                  {t('welcome_back')} <span style={{ fontSize: '1.4rem' }}>👋</span>
-                </h1>
-                <p style={{ color: '#aaa', margin: 0, fontSize: '0.85rem' }}>{t('dashboard_subtitle')}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <h1 style={{ color: '#d4b872', margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 400, fontFamily: "'Cinzel', serif" }}>
+                    {t('welcome_back')} <span style={{ fontSize: '1.4rem' }}>👋</span>
+                  </h1>
+                  <p style={{ color: '#aaa', margin: 0, fontSize: '0.85rem' }}>{t('dashboard_subtitle')}</p>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 {[
-                  { label: t('total_cases'), value: '24', trend: t('stat_trend_month'), trendUp: true, color: '#d4b872', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2"><path d="M21 8v13H3V8"></path><path d="M16 8V6a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2"></path><line x1="8" y1="14" x2="16" y2="14"></line></svg> },
-                  { label: t('stat_phishing'), value: '14', trend: t('stat_trend_month'), trendUp: true, color: '#ff3333', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff3333" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> },
-                  { label: t('stat_legitimate'), value: '10', trend: t('stat_trend_month'), trendUp: true, color: '#3296ff', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3296ff" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> }
+                  { label: t('total_cases') || 'Total Cases', value: recentCases.length, trend: '+12% this month', trendUp: true, color: '#d4b872', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2"><path d="M21 8v13H3V8"></path><path d="M16 8V6a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v2"></path><line x1="8" y1="14" x2="16" y2="14"></line></svg> },
+                  { label: t('stat_phishing') || 'Phishing Detected', value: recentCases.filter(c => c.verdict === 'PHISHING').length, trend: '+8% this month', trendUp: true, color: '#ff3333', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff3333" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> },
+                  { label: t('stat_legitimate') || 'Legitimate', value: recentCases.filter(c => c.verdict === 'LEGITIMATE').length, trend: '+4% this month', trendUp: true, color: '#3296ff', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3296ff" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> }
                 ].map((stat, i) => (
                   <div key={i} style={{
                     background: 'rgba(15, 10, 10, 0.75)',
@@ -502,8 +634,8 @@ export default function DashboardScreen({ onBack, onSignOut }) {
 
 
 
-        {/* Support Center Modal */}
-        {showSupportModal && (
+        {/* Support Center Modal, Email Viewer, Integrations, New Investigation */}
+        {(showSupportModal || selectedEmailCase || showNewInvestigation) && (
           <div style={{
             position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
@@ -585,14 +717,143 @@ export default function DashboardScreen({ onBack, onSignOut }) {
                 </>
               )}
 
-              <button onClick={handleCloseModal} style={{
-                width: '100%', padding: '0.75rem', background: 'rgba(212,184,114,0.15)',
-                border: '1px solid rgba(212,184,114,0.3)', borderRadius: '8px',
-                color: '#d4b872', cursor: 'pointer', fontSize: '0.9rem',
-                transition: 'all 0.2s'
-              }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.25)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.15)'}>
-                {showSupportModal === 'report' ? 'Submit Report' : showSupportModal === 'upgrade' ? 'Continue to Payment' : 'Close'}
-              </button>
+              {showSupportModal === 'integrations' && (
+                <>
+                  <h2 style={{ color: '#d4b872', fontFamily: "'Cinzel', serif", margin: '0 0 1rem 0' }}>Enterprise Integrations</h2>
+                  <p style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+                    Connect Inquest AI to your corporate environments for automated email triage.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                    {/* Microsoft 365 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '40px', height: '40px', background: '#00a4ef', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><rect x="2" y="2" width="9" height="9"></rect><rect x="13" y="2" width="9" height="9"></rect><rect x="2" y="13" width="9" height="9"></rect><rect x="13" y="13" width="9" height="9"></rect></svg>
+                        </div>
+                        <div>
+                          <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>Microsoft 365</div>
+                          <div style={{ color: '#888', fontSize: '0.75rem' }}>Exchange Online integration</div>
+                        </div>
+                      </div>
+                      <button style={{ background: 'transparent', border: '1px solid #d4b872', color: '#d4b872', padding: '0.4rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Connect</button>
+                    </div>
+
+                    {/* Google Workspace */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '40px', height: '40px', background: '#ea4335', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"></path></svg>
+                        </div>
+                        <div>
+                          <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>Google Workspace</div>
+                          <div style={{ color: '#888', fontSize: '0.75rem' }}>Gmail Enterprise integration</div>
+                        </div>
+                      </div>
+                      <button style={{ background: 'transparent', border: '1px solid #d4b872', color: '#d4b872', padding: '0.4rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Connect</button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {showSupportModal && (
+                <button onClick={handleCloseModal} style={{
+                  width: '100%', padding: '0.75rem', background: 'rgba(212,184,114,0.15)',
+                  border: '1px solid rgba(212,184,114,0.3)', borderRadius: '8px',
+                  color: '#d4b872', cursor: 'pointer', fontSize: '0.9rem',
+                  transition: 'all 0.2s'
+                }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.25)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(212,184,114,0.15)'}>
+                  {showSupportModal === 'report' ? 'Submit Report' : showSupportModal === 'upgrade' ? 'Continue to Payment' : 'Close'}
+                </button>
+              )}
+
+              {selectedEmailCase && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ color: '#d4b872', fontFamily: "'Cinzel', serif", margin: 0, fontSize: '1.4rem' }}>Original Email</h2>
+                    <button onClick={handleCloseModal} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.5)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.9rem', color: '#eee' }}>
+                    <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
+                      <span style={{ width: '80px', color: '#888', flexShrink: 0 }}>From:</span>
+                      <span style={{ fontWeight: 500, wordBreak: 'break-all' }}>{selectedEmailCase.sender}</span>
+                    </div>
+                    <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
+                      <span style={{ width: '80px', color: '#888', flexShrink: 0 }}>Subject:</span>
+                      <span style={{ fontWeight: 500, wordBreak: 'break-word' }}>{selectedEmailCase.subject}</span>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '80px', color: '#888', flexShrink: 0 }}>Date:</span>
+                      <span>{selectedEmailCase.date ? new Date(selectedEmailCase.date).toLocaleString() : 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap', color: '#ccc', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                    {selectedEmailCase.raw_email?.replace(/From:.*\n|To:.*\n|Subject:.*\n|Date:.*\n/gi, '').trim() || 'No email body available.'}
+                  </div>
+                </>
+              )}
+
+              {showNewInvestigation && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ color: '#d4b872', fontFamily: "'Cinzel', serif", margin: 0, fontSize: '1.4rem' }}>New Investigation</h2>
+                    <button onClick={handleCloseModal} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+
+                  <p style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    Paste the raw headers and body of the suspicious email below to initiate an AI courtroom investigation.
+                  </p>
+
+                  <textarea
+                    value={customEmail}
+                    onChange={(e) => setCustomEmail(e.target.value)}
+                    placeholder="From: scammer@bad-domain.com&#10;To: you@company.com&#10;Subject: Urgent Request...&#10;&#10;Dear user, click here..."
+                    style={{
+                      width: '100%',
+                      height: '220px',
+                      background: 'rgba(0,0,0,0.5)',
+                      border: '1px solid rgba(212,184,114,0.3)',
+                      color: '#fff',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      fontFamily: 'monospace',
+                      fontSize: '0.85rem',
+                      resize: 'none',
+                      marginBottom: '1rem'
+                    }}
+                  />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setCustomEmail(`From: security@paypa1-login.com\nTo: nvnkumaredu@gmail.com\nSubject: Urgent: Verify Your Account\n\nDear Customer,\n\nWe noticed unusual activity on your account. Please click the link below to verify your identity:\nhttp://paypa1-login.com/verify\n\nFailure to do so will result in account suspension.\n\nThanks,\nThe PayPal Security Team`)}
+                      style={{ background: 'transparent', border: 'none', color: '#d4b872', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Load Sample Phishing Email
+                    </button>
+
+                    <button
+                      onClick={handleCustomInvestigation}
+                      disabled={isDemoRunning || !customEmail.trim()}
+                      style={{
+                        background: 'var(--red-crimson)',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '6px',
+                        fontWeight: 'bold',
+                        cursor: isDemoRunning || !customEmail.trim() ? 'not-allowed' : 'pointer',
+                        opacity: isDemoRunning || !customEmail.trim() ? 0.5 : 1
+                      }}
+                    >
+                      {isDemoRunning ? 'Analyzing...' : 'Investigate Email'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
