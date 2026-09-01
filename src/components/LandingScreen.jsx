@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import LanguageDropdown from './LanguageDropdown';
 
 const ShieldScaleLogo = () => (
   <svg width="65" height="65" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem', filter: 'drop-shadow(0px 0px 10px rgba(212, 184, 114, 0.4))' }}>
@@ -62,6 +63,23 @@ export default function LandingScreen({ onForward }) {
       position: 'relative',
       background: 'radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 70%)'
     }}>
+
+      {/* Top Navigation */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '2rem 4rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem', boxSizing: 'border-box', zIndex: 50 }}>
+        <button style={{
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          color: '#e0e0e0',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '8px',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: '0.95rem',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}>Dashboard</button>
+        <LanguageDropdown />
+      </div>
 
       {/* Top Header Section */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem', marginTop: '5rem' }}>
