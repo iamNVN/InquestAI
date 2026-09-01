@@ -1,5 +1,6 @@
 import React from 'react';
 import LanguageDropdown from './LanguageDropdown';
+import { useLanguage } from '../LanguageContext';
 
 const HeaderLogo = () => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -21,10 +22,11 @@ const HeaderLogo = () => (
 // We will use the provided png images for the scale icon
 
 export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal, verdict = 'guilty' }) {
+  const { t } = useLanguage();
   const isGuilty = verdict === 'guilty';
   const iconSrc = isGuilty ? '/background/guilty_scale.png' : '/background/safe_scale.png';
   const glowColor = isGuilty ? 'rgba(255,0,0,0.15)' : 'rgba(46,204,113,0.15)';
-  const verdictText = isGuilty ? 'GUILTY' : 'SAFE';
+  const verdictText = isGuilty ? t('guilty') : t('safe');
   const verdictColor = isGuilty ? '#ff3333' : '#2ecc71';
   const shadowColor = isGuilty ? 'rgba(255, 0, 0, 0.6)' : 'rgba(46, 204, 113, 0.6)';
 
@@ -64,7 +66,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
             fontSize: '0.95rem',
             cursor: 'pointer',
             transition: 'all 0.2s'
-          }}>Need Help?</button>
+          }}>{t('need_help')}</button>
           <LanguageDropdown />
         </div>
       </div>
@@ -124,7 +126,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
             margin: '0 0 0.5rem 0',
             fontWeight: 600
           }}>
-            {isFinal ? 'FINAL JUDGEMENT' : 'THE COURT VERDICT'}
+            {isFinal ? t('final_judgement') : t('the_court_verdict')}
           </h3>
 
           <h1 style={{
@@ -146,13 +148,12 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
             fontWeight: 400,
             margin: '0 0 2rem 0'
           }}>
-            This email is a <span style={{ fontWeight: 600 }}>PHISHING</span> attempt
+            {t('this_email_is_a')} <span style={{ fontWeight: 600 }}>{isGuilty ? t('phishing_attempt') : t('safe_attempt')}</span>
           </h2>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', color: '#ccc' }}>Confidence: 92%</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', color: '#ccc' }}>{t('confidence')}: 92%</span>
             <div style={{ width: '220px', height: '9px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', display: 'flex', gap: '3px' }}>
-              {/* Segmented look */}
               <div style={{ flex: 1, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)' }}></div>
               <div style={{ flex: 1, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)' }}></div>
               <div style={{ flex: 1, height: '100%', background: '#ff3333', boxShadow: '0 0 10px rgba(255,0,0,0.8)' }}></div>
@@ -179,7 +180,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
               letterSpacing: '2px',
               margin: '0 0 1rem 0'
             }}>
-              REASON
+              {t('reason')}
             </h4>
             <p style={{
               fontFamily: "'Inter', sans-serif",
@@ -189,8 +190,8 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
               margin: 0
             }}>
               {isFinal
-                ? "The court finds the prosecution has proven the intent to deceive beyond reasonable doubt based on the evidence presented."
-                : "The sender is using a lookalike domain, the link redirects to a suspicious website, and the content intentionally creates urgency to trick you."}
+                ? t('verdict_reason_final')
+                : t('verdict_reason_default')}
             </p>
           </div>
         </div>
@@ -230,7 +231,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b872" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 13.5V16.5l-4 4-4-4V13.5"></path><path d="M2 13.5h20"></path><path d="M12 2L12 9"></path><path d="M8 5h8"></path></svg>
           )}
-          {isFinal ? 'Replay Hearing' : 'View Hearing'}
+          {isFinal ? t('replay_hearing') : t('view_hearing')}
         </button>
 
         <button
@@ -258,7 +259,7 @@ export default function VerdictScreen({ onViewHearing, onGenerateReport, isFinal
           onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a0c0e0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          Generate Report
+          {t('generate_report')}
         </button>
       </div>
     </div>
