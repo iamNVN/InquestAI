@@ -1,12 +1,13 @@
+import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
 const smtpTransporter = nodemailer.createTransport({
-    host: '54.39.160.85',
+    host: process.env.EMAIL_HOST,
     port: 465,
     secure: true,
     auth: {
-        user: 'courtroom@iamnvn.in',
-        pass: '***'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
     },
     tls: { rejectUnauthorized: false }
 });

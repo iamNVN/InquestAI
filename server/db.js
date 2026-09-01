@@ -8,14 +8,19 @@ import { Sequelize, DataTypes } from 'sequelize';
 import mysql from 'mysql2/promise';
 
 async function initializeDatabase() {
-  const connection = await mysql.createConnection({ host: 'localhost', port: 3308, user: 'root', password: 'admin' });
+  const connection = await mysql.createConnection({ 
+    host: process.env.DB_HOST || 'localhost', 
+    port: parseInt(process.env.DB_PORT || '3308'), 
+    user: process.env.DB_USER || 'root', 
+    password: process.env.DB_PASSWORD || 'admin' 
+  });
   await connection.query('CREATE DATABASE IF NOT EXISTS `inquest`;');
   await connection.end();
 }
 
-const sequelize = new Sequelize('inquest', 'root', 'admin', {
-  host: 'localhost',
-  port: 3308,
+const sequelize = new Sequelize('inquest', process.env.DB_USER || 'root', process.env.DB_PASSWORD || 'admin', {
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3308'),
   dialect: 'mysql',
   logging: false,
 });
