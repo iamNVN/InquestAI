@@ -12,23 +12,40 @@ function App() {
 
   return (
     <>
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: 'fixed',
-          width: '100vw',
-          height: '100vh',
-          objectFit: 'cover',
-          zIndex: -1,
-          top: 0,
-          left: 0
-        }}
-      >
-        <source src="/background/1.mp4" type="video/mp4" />
-      </video>
+      {currentScreen === 'LANDING' ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'fixed',
+            width: '100vw',
+            height: '100vh',
+            objectFit: 'cover',
+            zIndex: -1,
+            top: 0,
+            left: 0
+          }}
+        >
+          <source src="/background/1.mp4" type="video/mp4" />
+        </video>
+      ) : (
+        <div
+          style={{
+            position: 'fixed',
+            width: '100vw',
+            height: '100vh',
+            zIndex: -1,
+            top: 0,
+            left: 0,
+            backgroundImage: currentScreen === 'HEARING' ? "url('/background/courtroom.png')" : "url('/background/2.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundColor: '#000'
+          }}
+        />
+      )}
       
       {currentScreen === 'LANDING' && (
         <LandingScreen onForward={() => setCurrentScreen('VERDICT')} />
