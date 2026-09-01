@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useLanguage, translateDynamic } from '../LanguageContext';
 import LanguageDropdown from './LanguageDropdown';
 import Cookies from 'js-cookie';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function DashboardScreen() {
   const { t, language } = useLanguage();
@@ -14,6 +15,8 @@ export default function DashboardScreen() {
   if (path === '/mycases') activeTab = 'My Cases';
   else if (path === '/myreports') activeTab = 'Reports';
   else if (path === '/support') activeTab = 'Support';
+
+  useDocumentTitle(`Inquest AI | ${activeTab}`);
 
   const [openDropdownIdx, setOpenDropdownIdx] = useState(null);
   const [showSupportModal, setShowSupportModal] = useState(null);
@@ -118,6 +121,21 @@ export default function DashboardScreen() {
     }
     setShowNewInvestigation(false);
     setCustomEmail('');
+  };
+
+  const handleDeleteCase = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this case and its report?")) return;
+    try {
+      const res = await fetch(`/api/investigate/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setRecentCases(prev => prev.filter(c => c.id !== id));
+        setTranslatedCases(prev => prev.filter(c => c.id !== id));
+      } else {
+        console.error("Failed to delete case");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleCloseModal = () => {
@@ -270,6 +288,9 @@ export default function DashboardScreen() {
                         </button>
                         <button onClick={() => navigate(`/report/${c.id}`)} style={{ background: 'transparent', border: 'none', color: '#ccc', padding: '0.6rem 1rem', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 184, 114, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
                           View Report
+                        </button>
+                        <button onClick={() => { setOpenDropdownIdx(null); handleDeleteCase(c.id); }} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', padding: '0.6rem 1rem', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 77, 77, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                          Delete Case
                         </button>
                       </div>
                     )}

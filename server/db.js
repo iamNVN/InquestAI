@@ -70,12 +70,12 @@ const HearingDialogue = sequelize.define('HearingDialogue', {
 }, { timestamps: true, createdAt: 'timestamp', updatedAt: false });
 
 // Relationships
-Investigation.hasMany(EvidenceEntry, { foreignKey: 'investigation_id' });
+Investigation.hasMany(EvidenceEntry, { foreignKey: 'investigation_id', onDelete: 'CASCADE' });
 EvidenceEntry.belongsTo(Investigation, { foreignKey: 'investigation_id' });
 
-Investigation.hasMany(GraphEdge, { foreignKey: 'investigation_id' });
-Investigation.hasOne(Verdict, { foreignKey: 'investigation_id' });
-Investigation.hasMany(HearingDialogue, { foreignKey: 'investigation_id' });
+Investigation.hasMany(GraphEdge, { foreignKey: 'investigation_id', onDelete: 'CASCADE' });
+Investigation.hasOne(Verdict, { foreignKey: 'investigation_id', onDelete: 'CASCADE' });
+Investigation.hasMany(HearingDialogue, { foreignKey: 'investigation_id', onDelete: 'CASCADE' });
 
 async function syncDb() {
   await initializeDatabase();

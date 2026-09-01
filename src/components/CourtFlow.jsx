@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import VerdictScreen from './VerdictScreen';
 import LiveHearingScreen from './LiveHearingScreen';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function CourtFlow() {
   const { caseID } = useParams();
   const navigate = useNavigate();
   const [step, setStep] = useState('VERDICT'); // VERDICT, HEARING, FINAL
   const [investigation, setInvestigation] = useState(null);
+
+  useDocumentTitle(step === 'HEARING' ? 'Inquest AI | Live Hearing' : 'Inquest AI | Verdict');
 
   useEffect(() => {
     let interval;

@@ -3,13 +3,16 @@ import express from 'express';
 import cors from 'cors';
 import { syncDb, Investigation, EvidenceEntry, GraphEdge, Verdict, HearingDialogue } from './db.js';
 import { startInvestigation, subscribe } from './orchestrator/investigate.js';
+import { startEmailListener } from './emailIntegration.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sync DB
-syncDb().catch(console.error);
+// Sync DB and start email listener
+syncDb().then(() => {
+  startEmailListener();
+}).catch(console.error);
 
 // -------------------------------------
 // Auth Endpoints
@@ -65,6 +68,15 @@ app.get('/api/investigate/:id', async (req, res) => {
     verdict: inv.Verdict || null,
     dialogues: inv.HearingDialogues || []
   });
+});
+
+app.delete('/api/investigate/:id', async (req, res) => {
+  const { id } = req.params;
+  const inv = await Investigation.findByPk(id);
+  if (!inv) return res.status(404).json({ error: 'Not found' });
+  
+  await inv.destroy();
+  res.json({ success: true });
 });
 
 app.get('/api/investigate/:id/report', async (req, res) => {
