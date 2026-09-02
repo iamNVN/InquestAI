@@ -46,18 +46,19 @@ export default function DashboardScreen() {
           const data = await res.json();
           const caseToDuplicate = data.find(c => c.id === 'ONYNU');
           if (caseToDuplicate && caseToDuplicate.raw_email) {
-            const newId = `NEW-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
             await fetch('/api/investigate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                raw_email: caseToDuplicate.raw_email,
-                id: newId
+                raw_email: caseToDuplicate.raw_email
               })
             });
+            const updatedRes = await fetch('/api/cases');
+            const updatedData = await updatedRes.json();
+            setRecentCases(updatedData);
+          } else {
+            setRecentCases(data);
           }
-          // Remove ?email=1 so we fetch normally and don't infinite loop
-          navigate(location.pathname, { replace: true });
         } catch (err) {
           console.error(err);
         }
@@ -69,7 +70,7 @@ export default function DashboardScreen() {
         .then(data => setRecentCases(data))
         .catch(console.error);
     }
-  }, [location.search, navigate, location.pathname]);
+  }, [location.search]);
 
   useEffect(() => {
     if (recentCases.length === 0) {
@@ -548,29 +549,7 @@ export default function DashboardScreen() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             New Case
           </button>
-          <div style={{ padding: '0 0 1rem 0', marginBottom: '0.5rem' }}>
-            <button onClick={handleRunDemo} disabled={isDemoRunning} style={{
-              background: 'linear-gradient(135deg, #d4b872 0%, #b39b5b 100%)',
-              border: 'none',
-              color: '#0f0a0a',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              fontFamily: "'Inter', sans-serif",
-              cursor: isDemoRunning ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: '100%',
-              justifyContent: 'center',
-              boxShadow: '0 4px 15px rgba(212,184,114,0.3)',
-              opacity: isDemoRunning ? 0.7 : 1
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              {isDemoRunning ? 'Running Demo...' : 'Add Demo Case'}
-            </button>
-          </div>
+
 
           {/* User Profile */}
           <div style={{ marginTop: 'auto' }}>
