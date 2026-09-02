@@ -111,7 +111,6 @@ function injectBanner(analysis, rawEmail) {
   document.getElementById('inquest-close-btn').addEventListener('click', () => {
     banner.remove();
     bannerInjected = false;
-    currentEmailId = null;
   });
 
   document.getElementById('inquest-log-btn').addEventListener('click', () => {

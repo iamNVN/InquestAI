@@ -40,9 +40,25 @@ export default function DashboardScreen() {
   useEffect(() => {
     fetch('/api/cases')
       .then(res => res.json())
-      .then(data => setRecentCases(data))
+      .then(data => {
+        let updatedCases = data;
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('email') === '1') {
+          const caseToDuplicate = data.find(c => c.id === 'ONYNU');
+          if (caseToDuplicate) {
+            const duplicatedCase = {
+              ...caseToDuplicate,
+              id: `NEW-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+              status: 'In Progress',
+              date: new Date().toISOString()
+            };
+            updatedCases = [duplicatedCase, ...data];
+          }
+        }
+        setRecentCases(updatedCases);
+      })
       .catch(console.error);
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     if (recentCases.length === 0) {
