@@ -38,27 +38,38 @@ export default function DashboardScreen() {
   };
 
   useEffect(() => {
-    fetch('/api/cases')
-      .then(res => res.json())
-      .then(data => {
-        let updatedCases = data;
-        const searchParams = new URLSearchParams(location.search);
-        if (searchParams.get('email') === '1') {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('email') === '1') {
+      const handleDuplicate = async () => {
+        try {
+          const res = await fetch('/api/cases');
+          const data = await res.json();
           const caseToDuplicate = data.find(c => c.id === 'ONYNU');
-          if (caseToDuplicate) {
-            const duplicatedCase = {
-              ...caseToDuplicate,
-              id: `NEW-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-              status: 'In Progress',
-              date: new Date().toISOString()
-            };
-            updatedCases = [duplicatedCase, ...data];
+          if (caseToDuplicate && caseToDuplicate.raw_email) {
+            const newId = `NEW-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+            await fetch('/api/investigate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                raw_email: caseToDuplicate.raw_email,
+                id: newId
+              })
+            });
           }
+          // Remove ?email=1 so we fetch normally and don't infinite loop
+          navigate(location.pathname, { replace: true });
+        } catch (err) {
+          console.error(err);
         }
-        setRecentCases(updatedCases);
-      })
-      .catch(console.error);
-  }, [location.search]);
+      };
+      handleDuplicate();
+    } else {
+      fetch('/api/cases')
+        .then(res => res.json())
+        .then(data => setRecentCases(data))
+        .catch(console.error);
+    }
+  }, [location.search, navigate, location.pathname]);
 
   useEffect(() => {
     if (recentCases.length === 0) {

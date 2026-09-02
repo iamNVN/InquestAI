@@ -29,11 +29,13 @@ app.post('/api/auth/login', (req, res) => {
 // Investigation Endpoints
 // -------------------------------------
 app.post('/api/investigate', async (req, res) => {
-  const { raw_email } = req.body;
+  const { raw_email, id } = req.body;
   if (!raw_email) return res.status(400).json({ error: 'raw_email required' });
 
   // Create investigation in DB
-  const inv = await Investigation.create({ raw_email, status: 'running' });
+  const createPayload = { raw_email, status: 'running' };
+  if (id) createPayload.id = id;
+  const inv = await Investigation.create(createPayload);
   
   // Kick off async pipeline
   startInvestigation(inv.id, raw_email).catch(console.error);
