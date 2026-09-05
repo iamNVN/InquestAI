@@ -12,7 +12,7 @@ def run(cmd, env=None):
 
 # Target cutoff: Sept 1 2026 23:59:00 IST -> 1788287340
 CUTOFF = 1788287340
-OFFSET = 172800 # exactly 2 days
+OFFSET = 260000 # enough to push past Sept 2
 
 # Get list of all commits in reverse order (oldest to newest)
 commits = run("git log --reverse --format=%H").split("\n")

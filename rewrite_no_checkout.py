@@ -9,7 +9,7 @@ if not commits:
     exit()
 
 cutoff = 1788287340
-offset = 175000
+offset = 260000
 
 new_commits = {}
 

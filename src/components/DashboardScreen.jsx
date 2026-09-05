@@ -44,7 +44,7 @@ export default function DashboardScreen() {
         try {
           const res = await fetch('/api/cases');
           const data = await res.json();
-          const caseToDuplicate = data.find(c => c.id === 'ONYNU');
+          const caseToDuplicate = data.find(c => c.id === 'U35QL');
           if (caseToDuplicate && caseToDuplicate.raw_email) {
             await fetch('/api/investigate', {
               method: 'POST',
